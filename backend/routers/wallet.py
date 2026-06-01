@@ -115,7 +115,7 @@ def get_admin_transactions(
         db.query(models.WalletTransaction)
         .options(joinedload(models.WalletTransaction.user))
         .order_by(models.WalletTransaction.created_at.desc(), models.WalletTransaction.id.desc())
-        .limit(200)
+        .limit(12)
         .all()
     )
     return [wallet_utils.transaction_response(transaction) for transaction in transactions]

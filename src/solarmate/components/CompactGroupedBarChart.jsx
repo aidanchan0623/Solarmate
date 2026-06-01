@@ -26,7 +26,7 @@ export default function CompactGroupedBarChart({
   const [tooltip, setTooltip] = useState(null);
   const chartData = Array.isArray(data) ? data : [];
   const width = 760;
-  const padding = { top: 18, right: 12, bottom: 42, left: 34 };
+  const padding = { top: 18, right: 8, bottom: 42, left: 28 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
   const values = stacked
@@ -36,8 +36,8 @@ export default function CompactGroupedBarChart({
   const groupWidth = chartData.length ? chartWidth / chartData.length : chartWidth;
   const barGap = 3;
   const barWidth = stacked
-    ? Math.max(groupWidth - 16, 16)
-    : Math.max((groupWidth - 8 - barGap * (series.length - 1)) / series.length, 6);
+    ? Math.max(groupWidth - 12, 16)
+    : Math.max((groupWidth - 6 - barGap * (series.length - 1)) / series.length, 6);
 
   function y(value) {
     return padding.top + chartHeight - (Number(value) / maxValue) * chartHeight;
@@ -112,8 +112,8 @@ export default function CompactGroupedBarChart({
 
           {chartData.map((item, index) => {
             const groupStart = padding.left + index * groupWidth;
-            const groupX = groupStart + 2;
-            const stackedX = groupStart + Math.max((groupWidth - barWidth) / 2, 2);
+            const groupX = groupStart + 1;
+            const stackedX = groupStart + Math.max((groupWidth - barWidth) / 2, 1);
             let stackedOffset = 0;
             return (
               <g key={item[xKey]}>

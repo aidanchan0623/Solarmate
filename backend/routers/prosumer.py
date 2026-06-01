@@ -109,7 +109,7 @@ def wallet_response(
         total_earnings_this_month=row.total_earnings,
         available_balance=row.total_earnings,
         pending_settlement=row.solar_atap_earnings,
-        last_cashout_date="30 May 2026",
+        last_cashout_date=energy.malaysia_datetime_for_day(days_ago=1, hour=13, minute=20).strftime("%d %B %Y"),
         cashout_status="Available",
         settlement_status=row.status,
         uplift_percentage=energy.prosumer_uplift_percentage(),

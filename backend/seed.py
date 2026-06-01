@@ -21,10 +21,11 @@ CONSUMER_PACKAGE_BY_ALLOCATION = {
     2000: "Business Plus",
 }
 
-MONTHS = ["January 2026", "February 2026", "March 2026", "April 2026", "May 2026"]
+SIMULATION_MONTHS = energy.recent_months(5)
+MONTHS = [energy.month_label(f"{year}-{month:02d}") for year, month in SIMULATION_MONTHS]
 DEMO_EXPORTS = [520, 480, 610, 530, 620]
-DEMO_USAGE = [2450, 2520, 2610, 2700, 2700]
-DEMO_GREEN_CREDIT = [1000, 1000, 1000, 1000, 1000]
+DEMO_USAGE = [1080, 1125, 1160, 1190, 1200]
+DEMO_GREEN_CREDIT = [900, 950, 1000, 1000, 1000]
 PROSUMER_EXPORT_FACTORS = [0.96, 0.98, 1.0, 1.02, 1.04]
 CONSUMER_DEMAND_FACTORS = [0.96, 0.97, 0.985, 0.995, 1.0]
 PROSUMER_BUYBACK_RATE = 0.33
@@ -137,7 +138,7 @@ def generate_daily_values_for_month(year: int, month: int, target_total: float) 
 
 
 def month_year(index: int) -> tuple[int, int]:
-    return 2026, index + 1
+    return SIMULATION_MONTHS[index]
 
 
 def add_prosumer_daily_exports(db, user_id, commitment, target_exports=None):
@@ -194,7 +195,7 @@ def allocate_daily_green_credit(usage_values: list[float], monthly_credit_target
 
 def add_consumer_daily_usage(db, user_id, allocation, target_usage_values=None, target_credit_values=None):
     targets = target_usage_values or [
-        round(allocation * random.uniform(1.35, 1.75), 2)
+        round(allocation * random.uniform(1.04, 1.18), 2)
         for _ in MONTHS
     ]
     for index, target_usage in enumerate(targets):
@@ -203,7 +204,7 @@ def add_consumer_daily_usage(db, user_id, allocation, target_usage_values=None, 
         target_credit = (
             target_credit_values[index]
             if target_credit_values
-            else round(min(allocation, target_usage, allocation * CONSUMER_DEMAND_FACTORS[index] * random.uniform(0.985, 1.0)), 2)
+            else round(min(allocation, target_usage * random.uniform(0.84, 0.94)), 2)
         )
         green_values = allocate_daily_green_credit(usage_values, target_credit)
         for date_string, usage, green_credit in zip(energy.month_dates(year, month), usage_values, green_values):
@@ -359,9 +360,21 @@ def wallet_balance_for_user(user: models.User) -> float:
     return 0.0
 
 
+def add_seed_transaction(db, user, transaction_type, amount, status, description, days_ago, hour, minute=0):
+    db.add(models.WalletTransaction(
+        user_id=user.id,
+        transaction_type=transaction_type,
+        amount=energy.money(amount),
+        status=status,
+        description=description,
+        created_at=energy.malaysia_datetime_for_day(days_ago=days_ago, hour=hour, minute=minute),
+    ))
+
+
 def seed_wallets(db):
     db.query(models.WalletTransaction).delete(synchronize_session=False)
     users = db.query(models.User).all()
+    latest_month = MONTHS[-1]
     for user in users:
         if not user.wallet:
             db.add(models.Wallet(user_id=user.id, balance=wallet_balance_for_user(user)))
@@ -369,29 +382,21 @@ def seed_wallets(db):
             user.wallet.balance = wallet_balance_for_user(user)
 
         if user.username == "consumer_demo":
-            db.add(models.WalletTransaction(
-                user_id=user.id,
-                transaction_type="topup",
-                amount=1500.0,
-                status="successful",
-                description="Seeded wallet top-up for demo billing",
-            ))
+            add_seed_transaction(db, user, "topup", 1000.0, "successful", "Energy Wallet top-up via prototype banking", 6, 9, 10)
+            add_seed_transaction(db, user, "green_credit_usage", 0.0, "posted", f"SolarMate green credit applied for {latest_month}", 5, 10, 20)
+            add_seed_transaction(db, user, "bill_payment", 478.0, "successful", f"Blended energy bill payment for {MONTHS[-2]}", 4, 14, 5)
+            add_seed_transaction(db, user, "topup", 500.0, "successful", "Energy Wallet top-up before current bill", 3, 11, 30)
+            add_seed_transaction(db, user, "pending_bill", 0.0, "pending", f"Current blended bill generated for {latest_month}", 1, 16, 0)
+            add_seed_transaction(db, user, "bill_payment", 0.0, "pending", f"Awaiting payment for {latest_month}", 0, 9, 45)
         elif user.username == "prosumer_demo":
-            db.add(models.WalletTransaction(
-                user_id=user.id,
-                transaction_type="earning",
-                amount=250.0,
-                status="successful",
-                description="Seeded SolarMate export earnings",
-            ))
+            add_seed_transaction(db, user, "earning", 165.0, "successful", f"SolarMate quota export earning for {latest_month}", 7, 10, 0)
+            add_seed_transaction(db, user, "solar_atap_settlement", 32.44, "pending", f"Solar ATAP excess settlement for {latest_month}", 5, 15, 15)
+            add_seed_transaction(db, user, "settlement", 197.44, "pending", f"Monthly export settlement for {latest_month}", 3, 12, 10)
+            add_seed_transaction(db, user, "cashout", 120.0, "processing", "Cashout request submitted to bank transfer", 2, 17, 35)
+            add_seed_transaction(db, user, "cashout", 95.0, "successful", "Previous wallet cashout completed", 1, 13, 20)
         elif user.username == ESP_PROSUMER_USERNAME:
-            db.add(models.WalletTransaction(
-                user_id=user.id,
-                transaction_type="earning",
-                amount=33.0,
-                status="successful",
-                description="Seeded ESP32 prototype export earnings",
-            ))
+            add_seed_transaction(db, user, "earning", 33.0, "successful", "ESP32 prototype daily export earning", 2, 10, 40)
+            add_seed_transaction(db, user, "settlement", 18.5, "pending", "ESP32 prototype pending settlement", 0, 15, 25)
 
 
 def seed():

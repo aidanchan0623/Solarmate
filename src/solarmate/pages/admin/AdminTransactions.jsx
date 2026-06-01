@@ -7,9 +7,17 @@ function money(value) {
   return `RM${Number(value || 0).toFixed(2)}`;
 }
 
+function malaysiaDateTime(value) {
+  return new Intl.DateTimeFormat('en-MY', {
+    timeZone: 'Asia/Kuala_Lumpur',
+    dateStyle: 'medium',
+    timeStyle: 'short'
+  }).format(new Date(value));
+}
+
 const columns = [
   { key: 'id', label: 'Transaction ID' },
-  { key: 'created_at', label: 'Date', render: (row) => new Date(row.created_at).toLocaleString() },
+  { key: 'created_at', label: 'Date', render: (row) => malaysiaDateTime(row.created_at) },
   { key: 'username', label: 'User' },
   { key: 'role', label: 'Role' },
   { key: 'transaction_type', label: 'Type' },

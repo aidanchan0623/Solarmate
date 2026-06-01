@@ -16,10 +16,10 @@ CONSUMER_PACKAGE_BY_ALLOCATION = {
     2000: "Business Plus",
 }
 
-SIMULATION_MONTHS = [(2026, 1), (2026, 2), (2026, 3), (2026, 4), (2026, 5)]
+SIMULATION_MONTHS = energy.recent_months(5)
 DEMO_EXPORT_TARGETS = [520, 480, 610, 530, 620]
-DEMO_USAGE_TARGETS = [2450, 2520, 2610, 2700, 2700]
-DEMO_GREEN_CREDIT_TARGETS = [1000, 1000, 1000, 1000, 1000]
+DEMO_USAGE_TARGETS = [1080, 1125, 1160, 1190, 1200]
+DEMO_GREEN_CREDIT_TARGETS = [900, 950, 1000, 1000, 1000]
 PROSUMER_EXPORT_FACTORS = [0.96, 0.98, 1.0, 1.02, 1.04]
 CONSUMER_DEMAND_FACTORS = [0.96, 0.97, 0.985, 0.995, 1.0]
 
@@ -136,10 +136,10 @@ def consumer_usage_targets(user: models.User) -> tuple[list[float], list[float]]
         return DEMO_USAGE_TARGETS, [min(allocation, value) for value in DEMO_GREEN_CREDIT_TARGETS]
 
     rng = seeded_rng(user, "consumer-targets")
-    usage_targets = [round(allocation * rng.uniform(1.35, 1.75), 2) for _ in SIMULATION_MONTHS]
+    usage_targets = [round(allocation * rng.uniform(1.04, 1.18), 2) for _ in SIMULATION_MONTHS]
     credit_targets = [
-        round(min(allocation, allocation * factor * rng.uniform(0.985, 1.0), usage), 2)
-        for factor, usage in zip(CONSUMER_DEMAND_FACTORS, usage_targets)
+        round(min(allocation, usage * rng.uniform(0.84, 0.94)), 2)
+        for usage in usage_targets
     ]
     return usage_targets, credit_targets
 

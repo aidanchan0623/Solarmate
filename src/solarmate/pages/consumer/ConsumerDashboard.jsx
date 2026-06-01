@@ -1,9 +1,8 @@
-import { BadgeDollarSign, BarChart3, LayoutDashboard, UserCog, WalletCards } from 'lucide-react';
+import { BarChart3, LayoutDashboard, UserCog, WalletCards } from 'lucide-react';
 import { useState } from 'react';
 import AppShell from '../../components/AppShell';
 import { consumers } from '../../data/mockData';
 import { calculateConsumerSavings } from '../../utils/calculations';
-import BillingDashboard from '../billing/BillingDashboard';
 import ConsumerAccount from './ConsumerAccount';
 import ConsumerGreenCreditWallet from './ConsumerGreenCreditWallet';
 import ConsumerOverview from './ConsumerOverview';
@@ -12,7 +11,6 @@ import ConsumerUsageConsumption from './ConsumerUsageConsumption';
 const navItems = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'usage', label: 'Usage & Consumption', icon: BarChart3 },
-  { id: 'billing', label: 'Billing & Payment', icon: BadgeDollarSign },
   { id: 'wallet', label: 'Energy Wallet', icon: WalletCards },
   { id: 'account', label: 'Account / Manage Package', icon: UserCog }
 ];
@@ -28,14 +26,9 @@ const pages = {
     subtitle: 'Review weekly consumption and monthly bill totals from the same backend meter records.',
     component: ConsumerUsageConsumption
   },
-  billing: {
-    title: 'Pay Your Blended Energy Bill',
-    subtitle: 'Review a bill calculated from this month’s daily usage records and simulate payment status.',
-    component: BillingDashboard
-  },
   wallet: {
     title: 'Energy Wallet',
-    subtitle: 'Top up wallet balance, pay bills, and review wallet transaction history.',
+    subtitle: 'Top up, pay the current bill, download statements, and review transaction history.',
     component: ConsumerGreenCreditWallet
   },
   account: {
@@ -46,14 +39,14 @@ const pages = {
 };
 
 const usageByAllocation = {
-  300: { totalUsage: 420, greenCredit: 300 },
-  1000: { totalUsage: 1350, greenCredit: 1000 },
-  2000: { totalUsage: 2700, greenCredit: 2000 }
+  300: { totalUsage: 360, greenCredit: 300 },
+  1000: { totalUsage: 1200, greenCredit: 1000 },
+  2000: { totalUsage: 2400, greenCredit: 2000 }
 };
 
 function usageForAllocation(allocation, fallbackConsumer) {
   if (usageByAllocation[allocation]) return usageByAllocation[allocation];
-  const totalUsage = Math.max(fallbackConsumer.totalEnergyUsedThisMonth, allocation || 0);
+  const totalUsage = Math.max(allocation * 1.15, fallbackConsumer.totalEnergyUsedThisMonth, allocation || 0);
   return {
     totalUsage,
     greenCredit: Math.min(allocation || fallbackConsumer.energyCreditedThisMonth, totalUsage)

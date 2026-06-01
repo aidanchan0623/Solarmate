@@ -83,11 +83,8 @@ def upsert_monthly_summary(db: Session, month_key: str) -> models.PlatformMonthl
 
 def refresh_platform_monthly_summaries(db: Session) -> None:
     month_keys = {
-        row[0]
-        for row in db.query(func.substr(models.ProsumerDailyExport.date, 1, 7)).distinct().all()
-    } | {
-        row[0]
-        for row in db.query(func.substr(models.ConsumerDailyUsage.date, 1, 7)).distinct().all()
+        f"{year}-{month:02d}"
+        for year, month in energy.recent_months(5)
     }
     if not month_keys:
         return

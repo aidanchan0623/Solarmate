@@ -22,7 +22,10 @@ const columns = [
 ];
 
 function formatShortDate(value) {
-  return new Date(`${value}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  const [year, month, day] = String(value).split('-').map(Number);
+  const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  if (!year || !month || !day) return value;
+  return `${labels[month - 1]} ${day}`;
 }
 
 function kwh(value) {

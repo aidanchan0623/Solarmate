@@ -8,6 +8,13 @@ import {
   getAdminUsers
 } from '../../api/client';
 
+function malaysiaDate(value) {
+  return new Intl.DateTimeFormat('en-MY', {
+    timeZone: 'Asia/Kuala_Lumpur',
+    dateStyle: 'medium'
+  }).format(new Date(value));
+}
+
 export default function AdminUsers({ user }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -71,7 +78,7 @@ export default function AdminUsers({ user }) {
     {
       key: 'created_at',
       label: 'Joined Date',
-      render: (row) => new Date(row.created_at).toLocaleDateString()
+      render: (row) => malaysiaDate(row.created_at)
     },
     {
       key: 'actions',

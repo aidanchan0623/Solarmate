@@ -108,7 +108,7 @@ export default function AdminExportHistory() {
         )}
       </DashboardCard>
 
-      <DashboardCard eyebrow="Records" title="January to May platform records">
+      <DashboardCard eyebrow="Records" title="Recent platform records">
         <DataTable columns={columns} rows={rows} />
       </DashboardCard>
     </div>

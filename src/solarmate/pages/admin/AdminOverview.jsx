@@ -3,23 +3,28 @@ import DashboardCard from '../../components/DashboardCard';
 import DataTable from '../../components/DataTable';
 import HorizontalBarChart from '../../components/HorizontalBarChart';
 import StatusBadge from '../../components/StatusBadge';
-import { getAdminOverview } from '../../api/client';
-import { transactions } from '../../data/mockData';
+import { getAdminOverview, getAdminWalletTransactions } from '../../api/client';
 
 const transactionColumns = [
-  { key: 'id', label: 'Transaction ID' },
-  { key: 'consumer', label: 'Consumer' },
-  { key: 'creditedEnergy', label: 'Credited Energy' },
-  {
-    key: 'totalBill',
-    label: 'Total Bill',
-    render: (row) => `RM${row.totalBill.toFixed(2)}`
-  },
-  { key: 'paymentStatus', label: 'Payment Status' }
+  { key: 'created_at', label: 'Date', render: (row) => malaysiaDateTime(row.created_at) },
+  { key: 'username', label: 'User' },
+  { key: 'role', label: 'Role' },
+  { key: 'transaction_type', label: 'Activity' },
+  { key: 'amount', label: 'Amount', render: (row) => `RM${Number(row.amount || 0).toFixed(2)}` },
+  { key: 'status', label: 'Status' }
 ];
+
+function malaysiaDateTime(value) {
+  return new Intl.DateTimeFormat('en-MY', {
+    timeZone: 'Asia/Kuala_Lumpur',
+    dateStyle: 'medium',
+    timeStyle: 'short'
+  }).format(new Date(value));
+}
 
 export default function AdminOverview() {
   const [overview, setOverview] = useState(null);
+  const [transactions, setTransactions] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -29,8 +34,12 @@ export default function AdminOverview() {
     setLoading(true);
     setError('');
     try {
-      const data = await getAdminOverview({ signal: controller.signal });
+      const [data, transactionData] = await Promise.all([
+        getAdminOverview({ signal: controller.signal }),
+        getAdminWalletTransactions()
+      ]);
       setOverview(data);
+      setTransactions(transactionData);
     } catch (err) {
       console.error('Unable to load admin metrics', err);
       setOverview(null);
@@ -53,9 +62,13 @@ export default function AdminOverview() {
       setLoading(true);
       setError('');
       try {
-        const data = await getAdminOverview({ signal: controller.signal });
+        const [data, transactionData] = await Promise.all([
+          getAdminOverview({ signal: controller.signal }),
+          getAdminWalletTransactions()
+        ]);
         if (!cancelled) {
           setOverview(data);
+          setTransactions(transactionData);
           setError('');
         }
       } catch (err) {
@@ -120,12 +133,12 @@ export default function AdminOverview() {
           <div>
             <span>Total Prosumer Supply</span>
             <strong>{overview.total_export_commitment.toLocaleString()} kWh</strong>
-            <small>Monthly export commitments</small>
+            <small>Latest monthly export supply</small>
           </div>
           <div>
             <span>Total Consumer Demand</span>
             <strong>{overview.total_consumer_demand.toLocaleString()} kWh</strong>
-            <small>Subscribed package allocation</small>
+            <small>Latest green-credit demand</small>
           </div>
           <div>
             <span>Matched Green Energy</span>
@@ -231,7 +244,7 @@ export default function AdminOverview() {
       </DashboardCard>
 
       <DashboardCard eyebrow="Recent transactions" title="Latest billing activity">
-        <DataTable columns={transactionColumns} rows={transactions.slice(0, 5)} />
+        <DataTable columns={transactionColumns} rows={transactions.slice(0, 10)} />
       </DashboardCard>
       </>
       )}

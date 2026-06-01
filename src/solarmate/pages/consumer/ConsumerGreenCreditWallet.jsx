@@ -19,8 +19,16 @@ function money(value) {
   return `RM${Number(value || 0).toFixed(2)}`;
 }
 
+function malaysiaDateTime(value) {
+  return new Intl.DateTimeFormat('en-MY', {
+    timeZone: 'Asia/Kuala_Lumpur',
+    dateStyle: 'medium',
+    timeStyle: 'short'
+  }).format(new Date(value));
+}
+
 const transactionColumns = [
-  { key: 'created_at', label: 'Date', render: (row) => new Date(row.created_at).toLocaleString() },
+  { key: 'created_at', label: 'Date', render: (row) => malaysiaDateTime(row.created_at) },
   { key: 'transaction_type', label: 'Type' },
   { key: 'amount', label: 'Amount', render: (row) => money(row.amount) },
   { key: 'status', label: 'Status' },
@@ -146,6 +154,7 @@ export default function ConsumerGreenCreditWallet() {
             <div><span>Current Month Bill</span><strong>{money(bill.total_bill)}</strong></div>
             <div><span>Payment Status</span><strong>{bill.payment_status}</strong></div>
             <div><span>Green Credit Used</span><strong>{bill.green_credit_kwh.toLocaleString()} kWh</strong></div>
+            <div><span>TNB Import</span><strong>{bill.tnb_import_kwh.toLocaleString()} kWh</strong></div>
             <div><span>Percentage Saved</span><strong>{bill.actual_saving_percentage.toFixed(2)}%</strong></div>
           </div>
         </div>

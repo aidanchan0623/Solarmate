@@ -1,6 +1,7 @@
 from calendar import monthrange
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, time, timedelta
+from zoneinfo import ZoneInfo
 
 PROSUMER_BUYBACK_RATE = 0.33
 SOLAR_ATAP_REFERENCE_RATE = 0.2703
@@ -9,6 +10,7 @@ TNB_PEAK_TOTAL_RATE = 0.5217
 TNB_RETAIL_CHARGE = 20.0
 GRID_TOLL_RATE = 0.09
 PLATFORM_SPREAD_RATE = 0.01
+MALAYSIA_TZ = ZoneInfo("Asia/Kuala_Lumpur")
 
 
 def money(value: float) -> float:
@@ -17,6 +19,40 @@ def money(value: float) -> float:
 
 def kwh(value: float) -> float:
     return round(float(value or 0), 2)
+
+
+def malaysia_now() -> datetime:
+    return datetime.now(MALAYSIA_TZ)
+
+
+def malaysia_today() -> date:
+    return malaysia_now().date()
+
+
+def malaysia_datetime_for_day(days_ago: int = 0, hour: int = 10, minute: int = 0) -> datetime:
+    day = malaysia_today() - timedelta(days=days_ago)
+    return datetime.combine(day, time(hour=hour, minute=minute), tzinfo=MALAYSIA_TZ)
+
+
+def add_months(year: int, month: int, delta: int) -> tuple[int, int]:
+    month_index = (year * 12 + (month - 1)) + delta
+    return month_index // 12, (month_index % 12) + 1
+
+
+def recent_months(count: int = 5) -> list[tuple[int, int]]:
+    today = malaysia_today()
+    start_year, start_month = add_months(today.year, today.month, -(count - 1))
+    return [add_months(start_year, start_month, index) for index in range(count)]
+
+
+def current_month_key() -> str:
+    today = malaysia_today()
+    return f"{today.year}-{today.month:02d}"
+
+
+def recent_dates(count: int = 7) -> list[str]:
+    today = malaysia_today()
+    return [(today - timedelta(days=offset)).isoformat() for offset in reversed(range(count))]
 
 
 def month_key(date_string: str) -> str:

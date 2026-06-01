@@ -3,7 +3,7 @@ import DashboardCard from '../../components/DashboardCard';
 import DataTable from '../../components/DataTable';
 import CompactGroupedBarChart from '../../components/CompactGroupedBarChart';
 import StatusBadge from '../../components/StatusBadge';
-import { getAdminOverview, getProsumerEspLive } from '../../api/client';
+import { getAdminOverview } from '../../api/client';
 import { adminMetrics } from '../../data/mockData';
 import { calculateMatchedRate } from '../../utils/calculations';
 
@@ -26,9 +26,7 @@ function fallbackOverview() {
 
 export default function AdminSupplyDemand() {
   const [overview, setOverview] = useState(fallbackOverview);
-  const [espLive, setEspLive] = useState(null);
   const [error, setError] = useState('');
-  const [espError, setEspError] = useState('');
   const matchingRate =
     overview.matching_rate ?? calculateMatchedRate(overview.matched_green_energy, overview.total_export_commitment);
 
@@ -48,37 +46,16 @@ export default function AdminSupplyDemand() {
     };
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function loadEspLive() {
-      try {
-        const data = await getProsumerEspLive();
-        if (!cancelled) {
-          setEspLive(data);
-          setEspError('');
-        }
-      } catch (err) {
-        if (!cancelled) setEspError(err.message);
-      }
-    }
-    loadEspLive();
-    const interval = window.setInterval(loadEspLive, 5000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(interval);
-    };
-  }, []);
-
   const rows = [
     {
       label: 'Prosumer supply',
       value: `${overview.total_export_commitment.toLocaleString()} kWh`,
-      note: 'Sum of active export commitments'
+      note: 'Latest monthly export supply'
     },
     {
       label: 'Consumer demand',
       value: `${overview.total_consumer_demand.toLocaleString()} kWh`,
-      note: 'Sum of active package allocations'
+      note: 'Latest green-credit demand'
     },
     {
       label: 'Matched energy',
@@ -164,37 +141,6 @@ export default function AdminSupplyDemand() {
           valueSuffix=" kWh"
           xKey="label"
         />
-      </DashboardCard>
-
-      <DashboardCard
-        action={
-          <StatusBadge tone={espLive?.device_status === 'Online' ? 'success' : espLive?.device_status === 'No Data' ? 'warning' : 'neutral'}>
-            {espLive?.device_status || 'Loading'}
-          </StatusBadge>
-        }
-        eyebrow="ESP32 Live Prototype"
-        title="ESP-connected prosumer"
-      >
-        {espError && <div className="auth-error">Unable to load ESP live status: {espError}</div>}
-        <div className="summary-metrics compact">
-          <div>
-            <span>Device</span>
-            <strong>{espLive?.device_id || 'ESP32_SOLARMATE_001'}</strong>
-          </div>
-          <div>
-            <span>Live Power</span>
-            <strong>{(espLive?.power_w ?? 0).toLocaleString()} W</strong>
-          </div>
-          <div>
-            <span>Today Export</span>
-            <strong>{(espLive?.scaled_energy_kwh ?? 0).toLocaleString()} kWh</strong>
-          </div>
-          <div>
-            <span>Last Update</span>
-            <strong>{espLive?.last_update ? new Date(espLive.last_update).toLocaleTimeString() : 'No data'}</strong>
-          </div>
-        </div>
-        <p className="microcopy">Live ESP32 export is included in backend platform totals where current-month meter readings exist.</p>
       </DashboardCard>
 
       <DashboardCard eyebrow="Matching details" title="Prototype allocation summary">

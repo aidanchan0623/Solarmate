@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import DashboardCard from '../../components/DashboardCard';
 import DataTable from '../../components/DataTable';
 import CompactGroupedBarChart from '../../components/CompactGroupedBarChart';
-import { getAdminOverview } from '../../api/client';
-import { adminMetrics, revenueByMonth } from '../../data/mockData';
+import { getAdminMonthlyExportRecords, getAdminOverview } from '../../api/client';
+import { adminMetrics } from '../../data/mockData';
 import { PLATFORM_SPREAD_RATE, calculatePlatformRevenue } from '../../utils/calculations';
 
 const columns = [
@@ -21,14 +21,21 @@ export default function AdminRevenue() {
     matched_green_energy: adminMetrics.totalMatchedEnergy,
     solar_mate_revenue: adminMetrics.totalSolarMateRevenue
   });
+  const [monthlyRecords, setMonthlyRecords] = useState([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
     async function loadOverview() {
       try {
-        const data = await getAdminOverview();
-        if (!cancelled) setOverview(data);
+        const [data, records] = await Promise.all([
+          getAdminOverview(),
+          getAdminMonthlyExportRecords()
+        ]);
+        if (!cancelled) {
+          setOverview(data);
+          setMonthlyRecords(records);
+        }
       } catch (err) {
         if (!cancelled) setError(err.message);
       }
@@ -40,15 +47,21 @@ export default function AdminRevenue() {
   }, []);
 
   const scaledRevenueByMonth = useMemo(() => {
-    const lastMock = revenueByMonth[revenueByMonth.length - 1];
-    const revenueScale = lastMock.revenue ? overview.solar_mate_revenue / lastMock.revenue : 1;
-    const energyScale = lastMock.matchedKwh ? overview.matched_green_energy / lastMock.matchedKwh : 1;
-    return revenueByMonth.map((row) => ({
-      ...row,
-      matchedKwh: Math.round(row.matchedKwh * energyScale),
-      revenue: Number((row.revenue * revenueScale).toFixed(2))
-    }));
-  }, [overview]);
+    if (monthlyRecords.length) {
+      return monthlyRecords.map((row) => ({
+        month: row.month.split(' ')[0],
+        fullMonth: row.month,
+        matchedKwh: Math.round(row.matched_energy_kwh || 0),
+        revenue: Number((row.solar_mate_revenue || 0).toFixed(2))
+      }));
+    }
+    return [{
+      month: 'Current',
+      fullMonth: 'Current month',
+      matchedKwh: Math.round(overview.matched_green_energy || 0),
+      revenue: Number((overview.solar_mate_revenue || 0).toFixed(2))
+    }];
+  }, [monthlyRecords, overview]);
 
   return (
     <div className="page-stack">
@@ -95,6 +108,7 @@ export default function AdminRevenue() {
               color: 'gold'
             }
           ]}
+          tooltipTitle={(item) => item.fullMonth}
           valuePrefix="RM"
           xKey="month"
         />

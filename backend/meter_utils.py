@@ -1,4 +1,4 @@
-from datetime import datetime, time, timedelta, timezone
+from datetime import datetime, time, timedelta
 
 from sqlalchemy.orm import Session
 
@@ -43,16 +43,16 @@ def reading_status(reading: models.MeterReading | None) -> str:
         return "No Data"
     created_at = reading.created_at
     if created_at.tzinfo is None:
-        created_at = created_at.replace(tzinfo=timezone.utc)
-    age = datetime.now(timezone.utc) - created_at
+        created_at = created_at.replace(tzinfo=energy.MALAYSIA_TZ)
+    age = energy.malaysia_now() - created_at
     return "Online" if age <= timedelta(seconds=ONLINE_WINDOW_SECONDS) else "Offline"
 
 
 def reading_day_bounds(day: datetime | None = None) -> tuple[datetime, datetime]:
-    current = day or datetime.now(timezone.utc)
+    current = day or energy.malaysia_now()
     if current.tzinfo is None:
-        current = current.replace(tzinfo=timezone.utc)
-    start = datetime.combine(current.date(), time.min, tzinfo=timezone.utc)
+        current = current.replace(tzinfo=energy.MALAYSIA_TZ)
+    start = datetime.combine(current.date(), time.min, tzinfo=energy.MALAYSIA_TZ)
     end = start + timedelta(days=1)
     return start, end
 
@@ -103,7 +103,7 @@ def meter_monthly_scaled_totals(db: Session) -> dict[str, float]:
     for reading in readings:
         created_at = reading.created_at
         if created_at.tzinfo is None:
-            created_at = created_at.replace(tzinfo=timezone.utc)
+            created_at = created_at.replace(tzinfo=energy.MALAYSIA_TZ)
         day_key = (reading.device_id, created_at.date().isoformat())
         latest_by_day[day_key] = reading
 
@@ -111,7 +111,7 @@ def meter_monthly_scaled_totals(db: Session) -> dict[str, float]:
     for reading in latest_by_day.values():
         created_at = reading.created_at
         if created_at.tzinfo is None:
-            created_at = created_at.replace(tzinfo=timezone.utc)
+            created_at = created_at.replace(tzinfo=energy.MALAYSIA_TZ)
         month_key = created_at.strftime("%Y-%m")
         totals[month_key] = totals.get(month_key, 0) + float(reading.scaled_energy_kwh or 0)
     return totals

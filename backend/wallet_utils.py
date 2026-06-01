@@ -1,5 +1,3 @@
-from datetime import datetime, timezone
-
 from sqlalchemy.orm import Session
 
 import energy
@@ -29,13 +27,14 @@ def add_transaction(
         amount=energy.money(amount),
         status=status,
         description=description,
+        created_at=energy.malaysia_now(),
     )
     db.add(transaction)
     return transaction
 
 
 def touch_wallet(wallet: models.Wallet) -> None:
-    wallet.updated_at = datetime.now(timezone.utc)
+    wallet.updated_at = energy.malaysia_now()
 
 
 def transaction_response(transaction: models.WalletTransaction) -> dict:

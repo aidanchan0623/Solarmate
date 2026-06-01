@@ -22,6 +22,7 @@ const monthlyColumns = [
 ];
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MALAYSIA_TIME_ZONE = 'Asia/Kuala_Lumpur';
 
 function formatDateLabel(dateString) {
   const [year, month, day] = String(dateString).split('-').map(Number);
@@ -42,9 +43,51 @@ function stableRatio(seedText) {
   return 0.35 + (seed % 21) / 100;
 }
 
-const ESP_BASE_MONTH = '2026-06';
-const ESP_BASE_START_DATE = `${ESP_BASE_MONTH}-01`;
 const ESP_BASE_GENERATED_KWH = [24.4, 23.8, 25.1, 24.7, 26.2, 23.9, 25.5];
+const ESP_MONTHLY_EXPORT_FACTORS = [0.92, 1.08, 0.96, 1.14];
+
+function malaysiaDateParts(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: MALAYSIA_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(date);
+  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return {
+    year: Number(value.year),
+    month: Number(value.month),
+    day: Number(value.day)
+  };
+}
+
+function dateKey(year, month, day) {
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+function currentMalaysiaDateKey() {
+  const { year, month, day } = malaysiaDateParts();
+  return dateKey(year, month, day);
+}
+
+function monthKeyFromDate(dateString) {
+  return dateString.slice(0, 7);
+}
+
+function currentMalaysiaMonthKey() {
+  return monthKeyFromDate(currentMalaysiaDateKey());
+}
+
+function monthLabel(monthKey) {
+  const [year, month] = monthKey.split('-').map(Number);
+  return `${MONTH_LABELS[month - 1]} ${year}`;
+}
+
+function addMonths(monthKey, offset) {
+  const [year, month] = monthKey.split('-').map(Number);
+  const date = new Date(year, month - 1 + offset, 1);
+  return dateKey(date.getFullYear(), date.getMonth() + 1, 1).slice(0, 7);
+}
 
 function addDays(dateString, offset) {
   const [year, month, day] = String(dateString).split('-').map(Number);
@@ -69,9 +112,32 @@ function makeEspEnergyRow(date, generatedKwh, seedText) {
 }
 
 function buildEspBaseRows() {
+  const todayKey = currentMalaysiaDateKey();
+  const baseStartDate = addDays(todayKey, -(ESP_BASE_GENERATED_KWH.length - 1));
   return ESP_BASE_GENERATED_KWH.map((generatedKwh, index) => (
-    makeEspEnergyRow(addDays(ESP_BASE_START_DATE, index), generatedKwh, `esp-base-${index}`)
+    makeEspEnergyRow(addDays(baseStartDate, index), generatedKwh, `esp-base-${baseStartDate}-${index}`)
   ));
+}
+
+function buildEspHistoricalMonths(quota) {
+  const currentMonth = currentMalaysiaMonthKey();
+  return ESP_MONTHLY_EXPORT_FACTORS.map((factor, index) => {
+    const monthKey = addMonths(currentMonth, -(ESP_MONTHLY_EXPORT_FACTORS.length - index));
+    const actualExported = roundKwh((quota || 500) * factor);
+    const solarMateKWh = Math.min(actualExported, quota || actualExported);
+    const solarAtapKWh = Math.max(actualExported - (quota || actualExported), 0);
+    return {
+      month: monthLabel(monthKey),
+      month_key: monthKey,
+      actual_exported_kwh: actualExported,
+      solar_mate_kwh: roundKwh(solarMateKWh),
+      solar_atap_kwh: roundKwh(solarAtapKWh),
+      solar_mate_earnings: roundKwh(solarMateKWh * PROSUMER_BUYBACK_RATE),
+      solar_atap_earnings: roundKwh(solarAtapKWh * SOLAR_ATAP_REFERENCE_RATE),
+      total_earnings: roundKwh((solarMateKWh * PROSUMER_BUYBACK_RATE) + (solarAtapKWh * SOLAR_ATAP_REFERENCE_RATE)),
+      status: 'Settled'
+    };
+  });
 }
 
 export default function ProsumerExports({ prosumer, user }) {
@@ -85,7 +151,7 @@ export default function ProsumerExports({ prosumer, user }) {
   const deviceId = prosumer.deviceId || 'ESP32_SOLARMATE_001';
   const seenReadingRef = useRef(null);
   const espInitializedRef = useRef(false);
-  const espNextDayOffsetRef = useRef(ESP_BASE_GENERATED_KWH.length);
+  const espNextDayOffsetRef = useRef(1);
 
   async function loadExportData() {
     if (hasEspDevice) return;
@@ -130,7 +196,7 @@ export default function ProsumerExports({ prosumer, user }) {
         const generated = roundKwh(reading.scaled_energy_kwh);
         if (generated <= 0) return;
 
-        const date = addDays(ESP_BASE_START_DATE, espNextDayOffsetRef.current);
+        const date = addDays(currentMalaysiaDateKey(), espNextDayOffsetRef.current);
         espNextDayOffsetRef.current += 1;
         const espDayRow = makeEspEnergyRow(date, generated, `esp-${readingKey}-${generated}`);
 
@@ -164,13 +230,17 @@ export default function ProsumerExports({ prosumer, user }) {
   }, [exportRows]);
 
   const quota = prosumer.monthlyExportCommitment || 0;
+  const espCurrentMonthKey = currentMalaysiaMonthKey();
+  const espHistoricalMonths = useMemo(() => buildEspHistoricalMonths(quota), [quota]);
   const espMonthlySplit = useMemo(() => {
-    const actualExported = espRows.reduce((sum, row) => sum + row.exported_kwh, 0);
+    const actualExported = espRows
+      .filter((row) => monthKeyFromDate(row.date) === espCurrentMonthKey)
+      .reduce((sum, row) => sum + row.exported_kwh, 0);
     const solarMateKWh = Math.min(actualExported, quota);
     const solarAtapKWh = Math.max(actualExported - quota, 0);
     return {
-      month: 'June 2026',
-      month_key: ESP_BASE_MONTH,
+      month: monthLabel(espCurrentMonthKey),
+      month_key: espCurrentMonthKey,
       actual_exported_kwh: roundKwh(actualExported),
       solar_mate_kwh: roundKwh(solarMateKWh),
       solar_atap_kwh: roundKwh(solarAtapKWh),
@@ -179,7 +249,7 @@ export default function ProsumerExports({ prosumer, user }) {
       total_earnings: roundKwh((solarMateKWh * PROSUMER_BUYBACK_RATE) + (solarAtapKWh * SOLAR_ATAP_REFERENCE_RATE)),
       status: 'Session only'
     };
-  }, [espRows, quota]);
+  }, [espCurrentMonthKey, espRows, quota]);
   const currentMonth = hasEspDevice ? espMonthlySplit : monthlyRows[monthlyRows.length - 1];
   const quotaUsed = currentMonth && quota
     ? Math.min((currentMonth.solar_mate_kwh / quota) * 100, 100)
@@ -193,7 +263,7 @@ export default function ProsumerExports({ prosumer, user }) {
     exportedKwh: row.exported_kwh
   }));
 
-  const monthlyChartRows = hasEspDevice ? [currentMonth] : monthlyRows;
+  const monthlyChartRows = hasEspDevice ? [...espHistoricalMonths, currentMonth] : monthlyRows;
   const monthlyChartData = monthlyChartRows.map((row) => ({
     month: row.month.slice(0, 3),
     fullMonth: row.month,
@@ -229,7 +299,7 @@ export default function ProsumerExports({ prosumer, user }) {
           <DashboardCard eyebrow="Weekly export" title="This Week's Solar Export">
             <p className="microcopy">
               {hasEspDevice
-                ? 'June 1-7 are simulated. Each new ESP packet adds the next demo day, and refresh starts the sequence again.'
+                ? 'The latest 7 Malaysia dates start simulated. Each ESP packet adds the next demo day, and refresh starts the sequence again.'
                 : 'Weekly totals are summed from daily export records. Generated energy always equals local consumption plus exported energy.'}
             </p>
             <div className="summary-metrics compact important-metrics">
@@ -279,7 +349,7 @@ export default function ProsumerExports({ prosumer, user }) {
           >
             <p className="microcopy">
               {hasEspDevice
-                ? 'June monthly export combines the simulated base days with ESP-derived demo days from this session.'
+                ? 'The current Malaysia month combines simulated base days with ESP-derived demo days from this session.'
                 : 'Monthly earnings are calculated from the same daily export records, then split between SolarMate quota and Solar ATAP excess.'}
             </p>
             <div className="summary-metrics compact important-metrics">

@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from datetime import datetime, timezone
 
 import energy
 import meter_utils
@@ -13,8 +12,11 @@ router = APIRouter()
 
 
 def reading_point(reading: models.MeterReading) -> schemas.MeterReadingPointResponse:
+    created_at = reading.created_at
+    if created_at.tzinfo is None:
+        created_at = created_at.replace(tzinfo=energy.MALAYSIA_TZ)
     return schemas.MeterReadingPointResponse(
-        time=reading.created_at.strftime("%H:%M"),
+        time=created_at.strftime("%H:%M"),
         voltage_v=round(reading.voltage_v, 3),
         current_a=round(reading.current_a, 3),
         power_w=round(reading.power_w, 3),
@@ -35,7 +37,7 @@ def save_reading(
     if not user:
         raise HTTPException(status_code=404, detail="Unknown SolarMate device_id")
 
-    created_at = datetime.now(timezone.utc)
+    created_at = energy.malaysia_now()
     if device_id == meter_utils.ESP_DEVICE_ID:
         db.query(models.MeterReading).filter(
             models.MeterReading.device_id == device_id
