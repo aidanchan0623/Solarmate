@@ -1,0 +1,99 @@
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+
+import energy
+import models
+
+PROSUMER_BUYBACK_RATE = 0.33
+SOLAR_ATAP_REFERENCE_RATE = 0.2703
+GRID_TOLL_RATE = 0.09
+PLATFORM_SPREAD_RATE = 0.01
+SOLARMATE_RATE = 0.43
+TNB_PEAK_TOTAL_RATE = 0.5217
+
+
+def platform_user_counts(db: Session) -> dict:
+    return {
+        "total_users": db.query(func.count(models.User.id)).scalar() or 0,
+        "total_prosumers": db.query(func.count(models.User.id)).filter(models.User.role == "prosumer").scalar() or 0,
+        "total_consumers": db.query(func.count(models.User.id)).filter(models.User.role == "consumer").scalar() or 0,
+    }
+
+
+def upsert_monthly_summary(db: Session, month_key: str) -> models.PlatformMonthlySummary:
+    counts = platform_user_counts(db)
+    supply = (
+        db.query(func.sum(models.ProsumerDailyExport.exported_kwh))
+        .join(models.User, models.User.id == models.ProsumerDailyExport.user_id)
+        .filter(
+            models.User.role == "prosumer",
+            models.User.status == "active",
+            models.User.has_completed_onboarding.is_(True),
+            models.ProsumerDailyExport.date.like(f"{month_key}-%"),
+        )
+        .scalar()
+        or 0
+    )
+    demand = (
+        db.query(func.sum(models.ConsumerDailyUsage.green_credit_kwh))
+        .join(models.User, models.User.id == models.ConsumerDailyUsage.user_id)
+        .filter(
+            models.User.role == "consumer",
+            models.User.status == "active",
+            models.User.has_completed_onboarding.is_(True),
+            models.ConsumerDailyUsage.date.like(f"{month_key}-%"),
+        )
+        .scalar()
+        or 0
+    )
+    supply = float(supply)
+    demand = float(demand)
+    matched = min(supply, demand)
+    unmatched_supply = max(supply - demand, 0)
+    unmatched_demand = max(demand - supply, 0)
+    matching_rate = (matched / supply) * 100 if supply > 0 else 0
+
+    summary = (
+        db.query(models.PlatformMonthlySummary)
+        .filter(models.PlatformMonthlySummary.month_key == month_key)
+        .first()
+    )
+    if not summary:
+        summary = models.PlatformMonthlySummary(month_key=month_key, month=energy.month_label(month_key))
+        db.add(summary)
+
+    summary.month = energy.month_label(month_key)
+    summary.total_users = counts["total_users"]
+    summary.total_prosumers = counts["total_prosumers"]
+    summary.total_consumers = counts["total_consumers"]
+    summary.total_prosumer_supply_kwh = energy.kwh(supply)
+    summary.total_consumer_demand_kwh = energy.kwh(demand)
+    summary.matched_energy_kwh = energy.kwh(matched)
+    summary.unmatched_supply_kwh = energy.kwh(unmatched_supply)
+    summary.unmatched_demand_kwh = energy.kwh(unmatched_demand)
+    summary.matching_rate = round(matching_rate, 2)
+    summary.solarmate_revenue = energy.money(matched * PLATFORM_SPREAD_RATE)
+    summary.consumer_savings = energy.money(matched * (TNB_PEAK_TOTAL_RATE - SOLARMATE_RATE))
+    summary.prosumer_payout = energy.money(
+        matched * PROSUMER_BUYBACK_RATE + unmatched_supply * SOLAR_ATAP_REFERENCE_RATE
+    )
+    summary.grid_toll = energy.money(matched * GRID_TOLL_RATE)
+    return summary
+
+
+def refresh_platform_monthly_summaries(db: Session) -> None:
+    month_keys = {
+        row[0]
+        for row in db.query(func.substr(models.ProsumerDailyExport.date, 1, 7)).distinct().all()
+    } | {
+        row[0]
+        for row in db.query(func.substr(models.ConsumerDailyUsage.date, 1, 7)).distinct().all()
+    }
+    if not month_keys:
+        return
+
+    latest = max(month_keys)
+    db.query(models.PlatformMonthlySummary).delete(synchronize_session=False)
+    for month_key in sorted(month_keys):
+        summary = upsert_monthly_summary(db, month_key)
+        summary.status = "Pending" if month_key == latest else "Settled"
