@@ -13,6 +13,10 @@ function percent(value) {
   return `${Number(value || 0).toFixed(1)}%`;
 }
 
+function wholePercent(value) {
+  return `${Math.round(Number(value || 0))}%`;
+}
+
 function malaysiaDateTime(value) {
   if (!value) return '-';
   return new Intl.DateTimeFormat('en-MY', {
@@ -29,12 +33,6 @@ function hourLabel(value) {
     hour: 'numeric',
     hour12: true
   }).format(new Date(value));
-}
-
-function riskTone(risk) {
-  if (risk === 'Low') return 'success';
-  if (risk === 'Surplus Risk') return 'neutral';
-  return 'warning';
 }
 
 function riskChartColor(risk) {
@@ -101,9 +99,6 @@ export default function AdminGridIntelligence() {
   }
 
   const { current_hour: currentHour, summary } = data;
-  const rainStatus = currentHour.rain_mm > 0 || currentHour.rain_probability >= 50
-    ? `Rain watch: ${percent(currentHour.rain_probability)}`
-    : `No rain signal: ${percent(currentHour.rain_probability)}`;
   const balanceSignal = summary.expected_surplus_kwh > 0
     ? `Solar surplus: ${moneylessKwh(summary.expected_surplus_kwh)}`
     : `Solar shortfall: ${moneylessKwh(summary.expected_shortfall_kwh)}`;
@@ -127,15 +122,15 @@ export default function AdminGridIntelligence() {
           <div className="metric-emphasis">
             <span>Grid Risk Level</span>
             <strong>{summary.risk_level}</strong>
-            <small>Updated {malaysiaDateTime(data.generated_at)}</small>
+            <small>Utility-side decision support</small>
           </div>
           <div className="metric-emphasis">
-            <span>Weather / Rain Status</span>
-            <strong>{rainStatus}</strong>
+            <span><CloudRain size={16} /> Rain Probability</span>
+            <strong>{wholePercent(currentHour.rain_probability)}</strong>
             <small>{currentHour.weather_condition} at {data.location}</small>
           </div>
           <div className="metric-emphasis">
-            <span>Forecasted Solar Supply</span>
+            <span><CloudSun size={16} /> Forecasted Solar Supply</span>
             <strong>{moneylessKwh(summary.forecasted_solar_supply_kwh)}</strong>
             <small>Base: {moneylessKwh(summary.base_prosumer_supply_kwh)}</small>
           </div>
@@ -150,63 +145,38 @@ export default function AdminGridIntelligence() {
             <small>Demand: {moneylessKwh(summary.forecasted_consumer_demand_kwh)}</small>
           </div>
           <div>
-            <span>Solar Factor</span>
+            <span>Solar Potential</span>
             <strong>{percent(currentHour.solar_factor * 100)}</strong>
-            <small>Weather and daylight adjusted</small>
+            <small>Radiation-led solar factor</small>
           </div>
+          <div>
+            <span>Shortwave Radiation</span>
+            <strong>{currentHour.shortwave_radiation.toLocaleString()} W/m2</strong>
+            <small>Primary solar input</small>
+          </div>
+          <div>
+            <span>Cloud Cover</span>
+            <strong>{wholePercent(currentHour.cloud_cover)}</strong>
+            <small>Secondary solar penalty</small>
+          </div>
+          <div>
+            <span>Rain Amount</span>
+            <strong>{currentHour.rain_mm.toFixed(2)} mm</strong>
+            <small>Actual hourly rain</small>
+          </div>
+        </div>
+        <div className="formula-panel" style={{ marginTop: 16 }}>
+          <strong><ShieldAlert size={18} /> Recommendation</strong>
+          <p>{summary.recommendation}</p>
+          <small>
+            Location: {data.location} · Last updated {malaysiaDateTime(data.generated_at)} · Malaysia time / UTC+8
+          </small>
         </div>
         <div className="action-row" style={{ marginTop: 16 }}>
           <button className="secondary-button" onClick={loadGridIntelligence} type="button">
             <RefreshCw size={16} /> Refresh Advisory
           </button>
           <span className="microcopy">Auto-refreshes every 5 minutes in Malaysia time.</span>
-        </div>
-      </DashboardCard>
-
-      <DashboardCard
-        action={<StatusBadge tone={riskTone(summary.risk_level)}>{summary.risk_level}</StatusBadge>}
-        eyebrow="Recommended action"
-        title="Grid balancing advisory"
-      >
-        <div className="summary-layout">
-          <div className="summary-main">
-            <div className="formula-panel">
-              <strong><ShieldAlert size={18} /> Recommended action</strong>
-              <p>{summary.recommendation}</p>
-            </div>
-            <div className="summary-metrics compact">
-              <div>
-                <span>Matched Energy</span>
-                <strong>{moneylessKwh(summary.matched_energy_kwh)}</strong>
-              </div>
-              <div>
-                <span>Solar Shortfall</span>
-                <strong>{moneylessKwh(summary.expected_shortfall_kwh)}</strong>
-              </div>
-              <div>
-                <span>Solar Surplus</span>
-                <strong>{moneylessKwh(summary.expected_surplus_kwh)}</strong>
-              </div>
-            </div>
-          </div>
-          <div className="summary-side">
-            <div>
-              <span><CloudSun size={16} /> Shortwave radiation</span>
-              <strong>{currentHour.shortwave_radiation.toLocaleString()} W/m2</strong>
-            </div>
-            <div>
-              <span><CloudRain size={16} /> Rain probability</span>
-              <strong>{percent(currentHour.rain_probability)}</strong>
-            </div>
-            <div>
-              <span>Cloud cover</span>
-              <strong>{percent(currentHour.cloud_cover)}</strong>
-            </div>
-            <div>
-              <span>Rain amount</span>
-              <strong>{currentHour.rain_mm.toFixed(2)} mm</strong>
-            </div>
-          </div>
         </div>
       </DashboardCard>
 
@@ -223,7 +193,7 @@ export default function AdminGridIntelligence() {
           tooltipExtra={(item) => [
             { label: 'Cloud cover', value: percent(item.cloudCover), color: 'blueGrey' },
             { label: 'Rain probability', value: percent(item.rainProbability), color: 'gold' },
-            { label: 'Solar factor', value: percent(item.solarFactor * 100), color: 'green' },
+            { label: 'Solar potential', value: percent(item.solarFactor * 100), color: 'green' },
             { label: 'Risk level', value: item.riskLevel, color: riskChartColor(item.riskLevel) }
           ]}
           tooltipTitle={(item) => item.fullTime}

@@ -84,39 +84,54 @@ def weather_condition(weather_code: int | None, cloud_cover: float, rain_probabi
 
 
 def solar_factor(shortwave_radiation: float, cloud_cover: float, rain_probability: float, rain_mm: float) -> float:
-    radiation_factor = min(max(shortwave_radiation, 0) / 800, 1.0)
-    cloud_factor = 1 - (min(max(cloud_cover, 0), 100) / 100)
-    if rain_probability >= 80 or rain_mm > 5:
-        rain_factor = 0.35
-    elif rain_probability >= 60 or rain_mm > 2:
-        rain_factor = 0.55
-    elif rain_probability >= 30:
-        rain_factor = 0.75
+    radiation_factor = min(max(float(shortwave_radiation or 0) / 800, 0), 1)
+    cloud_penalty = 1 - (0.15 * (min(max(float(cloud_cover or 0), 0), 100) / 100))
+    rain_probability = float(rain_probability or 0)
+    rain_mm = float(rain_mm or 0)
+
+    if rain_mm >= 5:
+        rain_penalty = 0.60
+    elif rain_mm >= 2:
+        rain_penalty = 0.75
+    elif rain_probability >= 85:
+        rain_penalty = 0.85
+    elif rain_probability >= 65:
+        rain_penalty = 0.92
     else:
-        rain_factor = 1.0
-    raw_factor = radiation_factor * (0.4 + 0.6 * cloud_factor) * rain_factor
-    return round(min(max(raw_factor, 0.10), 1.00), 3)
+        rain_penalty = 1.00
+
+    raw_factor = radiation_factor * cloud_penalty * rain_penalty
+    return round(min(max(raw_factor, 0), 1), 3)
 
 
-def time_of_day_factor(forecast_time: datetime) -> float:
-    hour = forecast_time.hour + (forecast_time.minute / 60)
-    if hour >= 20 or hour < 6:
-        return 0.0
-    daylight = math.sin(((hour - 6) / 14) * math.pi)
-    return round(min(max(daylight, 0), 1), 3)
+def is_night_time(forecast_time: datetime) -> bool:
+    return forecast_time.hour >= 20 or forecast_time.hour < 6
 
 
 def adjusted_solar_factor(raw: dict) -> float:
-    weather_factor = solar_factor(
+    if is_night_time(raw["time"]):
+        return 0.0
+    return solar_factor(
         raw["shortwave_radiation"],
         raw["cloud_cover"],
         raw["rain_probability"],
         raw["rain_mm"],
     )
-    daylight_factor = time_of_day_factor(raw["time"])
-    if daylight_factor <= 0:
-        return 0.0
-    return round(min(max(weather_factor * daylight_factor, 0), 1), 3)
+
+
+def recommendation_for_hour(raw: dict, factor: float) -> str:
+    if is_night_time(raw["time"]):
+        return "Solar generation is unavailable at night. TNB fallback supply is required to support demand."
+    if factor >= 0.65 and raw["rain_probability"] < 60:
+        return "Solar output is expected to support normal SolarMate matching."
+    if factor >= 0.65 and raw["rain_probability"] >= 60:
+        return (
+            "Solar output is currently healthy, but rain probability is elevated. "
+            "Monitor output and prepare partial TNB fallback if conditions worsen."
+        )
+    if factor >= 0.35:
+        return "Moderate solar output expected. Continue monitoring and prepare partial TNB fallback supply."
+    return "Low solar output expected. Prepare additional TNB fallback supply."
 
 
 def grid_risk(expected_shortfall: float, expected_surplus: float, demand: float) -> tuple[str, str]:
@@ -246,11 +261,12 @@ def get_grid_intelligence(
     forecast_rows = relevant_forecast(rows)
     hourly = [advisory_hour(row, base_supply, consumer_demand) for row in forecast_rows]
     current = hourly[0]
-    risk, recommendation = grid_risk(
+    risk, _ = grid_risk(
         current.expected_shortfall_kwh,
         current.expected_surplus_kwh,
         current.forecasted_consumer_demand_kwh,
     )
+    recommendation = recommendation_for_hour(forecast_rows[0], current.solar_factor)
     return schemas.GridIntelligenceResponse(
         location=LOCATION,
         timezone=TIMEZONE,
