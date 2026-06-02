@@ -40,7 +40,13 @@ export default function AppShell({
 
   return (
     <div className={`portal-shell portal-${role}`}>
-      <aside className="portal-sidebar">
+      <aside
+        className={
+          role === 'admin'
+            ? 'portal-sidebar w-64 bg-slate-900 text-slate-300 border-r border-slate-800 shadow-[4px_0_24px_rgb(0,0,0,0.12)] z-10 flex flex-col'
+            : 'portal-sidebar w-64 bg-white border-r border-slate-200 shadow-[4px_0_24px_rgb(0,0,0,0.02)] z-10 flex flex-col'
+        }
+      >
         <div className="brand-block">
           <div className="logo-mark">
             <Zap size={24} />
@@ -51,7 +57,7 @@ export default function AppShell({
           </div>
         </div>
 
-        <div className="role-panel">
+        <div className={role === 'admin' ? 'role-panel admin-role-panel' : 'role-panel'}>
           <p className="eyebrow">{copy.label}</p>
           <h2>{userName}</h2>
           <p>{copy.description}</p>
@@ -68,7 +74,7 @@ export default function AppShell({
                 onClick={() => changeTab(item.id)}
               >
                 <Icon size={18} />
-                <span>{item.label}</span>
+                <span className="text-left leading-tight">{item.label}</span>
               </button>
             );
           })}
@@ -80,7 +86,7 @@ export default function AppShell({
         </button>
       </aside>
 
-      <main className="portal-main">
+      <main className={role === 'admin' ? 'portal-main min-h-screen bg-slate-50 p-8' : 'portal-main'}>
         <header className="portal-header">
           <div>
             <p className="eyebrow">{copy.label}</p>

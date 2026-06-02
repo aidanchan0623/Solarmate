@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CloudRain, CloudSun, RefreshCw, ShieldAlert } from 'lucide-react';
+import { CloudRain, CloudSun, RefreshCw, ShieldAlert, TriangleAlert, Sun, Cloud, Droplets } from 'lucide-react';
 import { getAdminGridIntelligence } from '../../api/client';
 import CompactGroupedBarChart from '../../components/CompactGroupedBarChart';
 import DashboardCard from '../../components/DashboardCard';
@@ -115,60 +115,83 @@ export default function AdminGridIntelligence() {
           not direct TNB grid control.
         </p>
         {error && <div className="auth-error">Unable to refresh advisory: {error}</div>}
-        <div className="grid-intelligence-summary">
-          <div className="grid-intelligence-row grid-intelligence-row-main">
-            <div className="grid-intelligence-card grid-intelligence-card-large">
-              <span>Grid Risk Level</span>
-              <strong>{summary.risk_level}</strong>
-              <small>Utility-side decision support</small>
+        <div className="flex flex-col gap-6 mt-4">
+          {/* TIER 1: THE HERO STATUS PANEL */}
+          <div className={`flex flex-col md:flex-row items-start md:items-center p-6 rounded-xl w-full ${
+            summary.risk_level === 'High' 
+              ? 'bg-red-950/20 border border-red-500/30' 
+              : 'bg-slate-900/50 border border-white/10'
+          }`}>
+            <div className="flex flex-col pr-6 md:border-r border-white/10 shrink-0">
+              <span className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-1">Grid Risk Level</span>
+              <div className="flex items-center gap-2">
+                <TriangleAlert className={summary.risk_level === 'High' ? 'text-red-400' : 'text-slate-300'} size={28} />
+                <strong className={`text-3xl font-bold ${summary.risk_level === 'High' ? 'text-red-400' : 'text-slate-100'}`}>
+                  {summary.risk_level}
+                </strong>
+              </div>
             </div>
-            <div className="grid-intelligence-card grid-intelligence-card-large">
-              <span><CloudSun size={16} /> Forecasted Solar Supply</span>
-              <strong>{moneylessKwh(summary.forecasted_solar_supply_kwh)}</strong>
-              <small>Base: {moneylessKwh(summary.base_prosumer_supply_kwh)}</small>
-            </div>
-          </div>
-          <div className="grid-intelligence-row grid-intelligence-row-medium">
-            <div className="grid-intelligence-card grid-intelligence-card-medium">
-              <span>Required TNB Fallback</span>
-              <strong>{moneylessKwh(summary.recommended_tnb_fallback_kwh)}</strong>
-              <small>Advisory fallback supply</small>
-            </div>
-            <div className="grid-intelligence-card grid-intelligence-card-medium">
-              <span><CloudRain size={16} /> Rain Probability</span>
-              <strong>{wholePercent(currentHour.rain_probability)}</strong>
-              <small>Open-Meteo hourly forecast</small>
-            </div>
-            <div className="grid-intelligence-card grid-intelligence-card-medium">
-              <span>Solar Potential</span>
-              <strong>{percent(currentHour.solar_factor * 100)}</strong>
-              <small>Based mainly on shortwave radiation</small>
+            <div className="flex flex-col mt-4 md:mt-0 md:pl-6 flex-1">
+              <span className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-2">
+                <ShieldAlert size={16} /> Recommendation
+              </span>
+              <p className="text-slate-200 text-lg">{summary.recommendation}</p>
             </div>
           </div>
-          <div className="grid-intelligence-row grid-intelligence-row-detail">
-            <div className="grid-intelligence-card grid-intelligence-card-detail">
-              <span>Shortwave Radiation</span>
-              <strong>{currentHour.shortwave_radiation.toLocaleString()} W/m2</strong>
-              <small>Primary solar input</small>
+
+          {/* TIER 2: PRIMARY ENERGY METRICS */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="flex flex-col p-6 rounded-xl bg-slate-900/50 border border-white/10">
+              <span className="text-slate-400 text-sm font-semibold uppercase tracking-wider flex items-center gap-2 mb-2">
+                <CloudSun size={16} /> Forecasted Solar Supply
+              </span>
+              <strong className="text-4xl font-bold text-slate-100 mb-1">{moneylessKwh(summary.forecasted_solar_supply_kwh)}</strong>
+              <small className="text-slate-500">Base: {moneylessKwh(summary.base_prosumer_supply_kwh)}</small>
             </div>
-            <div className="grid-intelligence-card grid-intelligence-card-detail">
-              <span>Cloud Cover</span>
-              <strong>{wholePercent(currentHour.cloud_cover)}</strong>
-              <small>Secondary solar penalty</small>
-            </div>
-            <div className="grid-intelligence-card grid-intelligence-card-detail">
-              <span>Rain Amount</span>
-              <strong>{currentHour.rain_mm.toFixed(2)} mm</strong>
-              <small>Actual hourly rain</small>
+            <div className="flex flex-col p-6 rounded-xl bg-slate-900/50 border border-white/10">
+              <span className="text-slate-400 text-sm font-semibold uppercase tracking-wider mb-2">
+                Required TNB Fallback
+              </span>
+              <strong className="text-4xl font-bold text-slate-100 mb-1">{moneylessKwh(summary.recommended_tnb_fallback_kwh)}</strong>
+              <small className="text-slate-500">Advisory fallback supply</small>
             </div>
           </div>
-        </div>
-        <div className="formula-panel" style={{ marginTop: 16 }}>
-          <strong><ShieldAlert size={18} /> Recommendation</strong>
-          <p>{summary.recommendation}</p>
-          <small>
+
+          {/* TIER 3: ENVIRONMENTAL TELEMETRY */}
+          <div className="flex flex-col p-4 rounded-xl bg-slate-900/30 border border-white/5">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3 px-2">Environmental Factors</span>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="flex flex-col items-center justify-center text-center px-2">
+                <CloudRain className="text-slate-500 mb-1" size={20} />
+                <strong className="text-slate-300 text-sm">{wholePercent(currentHour.rain_probability)}</strong>
+                <span className="text-slate-500 text-xs">Rain Prob</span>
+              </div>
+              <div className="flex flex-col items-center justify-center text-center px-2 border-white/5 md:border-l">
+                <Sun className="text-slate-500 mb-1" size={20} />
+                <strong className="text-slate-300 text-sm">{percent(currentHour.solar_factor * 100)}</strong>
+                <span className="text-slate-500 text-xs">Solar Potential</span>
+              </div>
+              <div className="flex flex-col items-center justify-center text-center px-2 border-white/5 md:border-l">
+                <Sun className="text-slate-500 mb-1" size={20} />
+                <strong className="text-slate-300 text-sm">{currentHour.shortwave_radiation.toLocaleString()} W/m²</strong>
+                <span className="text-slate-500 text-xs">Shortwave Rad</span>
+              </div>
+              <div className="flex flex-col items-center justify-center text-center px-2 border-white/5 md:border-l">
+                <Cloud className="text-slate-500 mb-1" size={20} />
+                <strong className="text-slate-300 text-sm">{wholePercent(currentHour.cloud_cover)}</strong>
+                <span className="text-slate-500 text-xs">Cloud Cover</span>
+              </div>
+              <div className="flex flex-col items-center justify-center text-center px-2 border-white/5 md:border-l">
+                <Droplets className="text-slate-500 mb-1" size={20} />
+                <strong className="text-slate-300 text-sm">{currentHour.rain_mm.toFixed(2)} mm</strong>
+                <span className="text-slate-500 text-xs">Rain Amount</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="text-xs text-slate-500 text-right mt-2">
             Location: {data.location} · Last updated {malaysiaDateTime(data.generated_at)} · Malaysia time / UTC+8
-          </small>
+          </div>
         </div>
         <div className="action-row" style={{ marginTop: 16 }}>
           <button className="secondary-button" onClick={loadGridIntelligence} type="button">

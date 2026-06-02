@@ -20,6 +20,7 @@ export default function CompactGroupedBarChart({
   tooltipTitle,
   tooltipItems,
   tooltipExtra,
+  barSize,
   emptyMessage = 'No chart data yet.'
 }) {
   const wrapperRef = useRef(null);
@@ -35,9 +36,10 @@ export default function CompactGroupedBarChart({
   const maxValue = Math.max(...values, 1);
   const groupWidth = chartData.length ? chartWidth / chartData.length : chartWidth;
   const barGap = 3;
+  const preferredBarSize = Number(barSize) || 0;
   const barWidth = stacked
-    ? Math.max(groupWidth - 12, 16)
-    : Math.max((groupWidth - 6 - barGap * (series.length - 1)) / series.length, 6);
+    ? (preferredBarSize ? Math.min(preferredBarSize, Math.max(groupWidth - 34, 16)) : Math.max(groupWidth - 12, 16))
+    : (preferredBarSize ? Math.min(preferredBarSize, Math.max((groupWidth - 6 - barGap * (series.length - 1)) / series.length, 6)) : Math.max((groupWidth - 6 - barGap * (series.length - 1)) / series.length, 6));
 
   function y(value) {
     return padding.top + chartHeight - (Number(value) / maxValue) * chartHeight;

@@ -7,6 +7,15 @@ import StatusBadge from '../../components/StatusBadge';
 import { selectConsumerPackage } from '../../api/client';
 import { packagePlans } from '../../data/mockData';
 
+function DetailField({ label, value }) {
+  return (
+    <div>
+      <span className="mb-1 block text-sm font-medium text-slate-500">{label}</span>
+      <strong className="block text-lg font-semibold text-slate-900">{value}</strong>
+    </div>
+  );
+}
+
 export default function ConsumerAccount({ onProfileUpdate, profile, user }) {
   const [localProfile, setLocalProfile] = useState(profile);
   const [isChanging, setIsChanging] = useState(false);
@@ -36,38 +45,31 @@ export default function ConsumerAccount({ onProfileUpdate, profile, user }) {
 
   return (
     <div className="page-stack">
-      <DashboardCard eyebrow="Account" title="Manage Package">
-        <div className="account-summary-grid">
+      <DashboardCard eyebrow="Account" title="Profile and Package">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
           <div>
-            <span>Username</span>
-            <strong>{user.username}</strong>
+            <h3 className="mb-5 text-sm font-bold uppercase tracking-wider text-slate-500">Profile details</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <DetailField label="Username" value={user.username} />
+              <DetailField label="Email" value={user.email} />
+              <DetailField label="Business name" value={localProfile?.business_name || 'Not set'} />
+              <DetailField label="Business type" value={localProfile?.business_type || 'Not set'} />
+            </div>
           </div>
-          <div>
-            <span>Email</span>
-            <strong>{user.email}</strong>
+
+          <div className="pt-8 md:pt-0 md:pl-8 lg:pl-12">
+            <h3 className="mb-5 text-sm font-bold uppercase tracking-wider text-slate-500">Package details</h3>
+            <div className="flex flex-col gap-6">
+              <DetailField label="Selected package" value={localProfile?.selected_package || 'Not selected'} />
+              <DetailField label="Package allocation" value={`${localProfile?.package_allocation_kwh || 0} kWh/month`} />
+              <div className="flex items-center gap-4 mt-4">
+                <button className="primary-button" onClick={() => setIsChanging((current) => !current)} type="button">
+                  Change Package
+                </button>
+                {user.has_completed_onboarding && <StatusBadge tone="success">Onboarding complete</StatusBadge>}
+              </div>
+            </div>
           </div>
-          <div>
-            <span>Business name</span>
-            <strong>{localProfile?.business_name || 'Not set'}</strong>
-          </div>
-          <div>
-            <span>Business type</span>
-            <strong>{localProfile?.business_type || 'Not set'}</strong>
-          </div>
-          <div>
-            <span>Selected package</span>
-            <strong>{localProfile?.selected_package || 'Not selected'}</strong>
-          </div>
-          <div>
-            <span>Package allocation</span>
-            <strong>{localProfile?.package_allocation_kwh || 0} kWh/month</strong>
-          </div>
-        </div>
-        <div className="action-row" style={{ marginTop: 16 }}>
-          <button className="primary-button" onClick={() => setIsChanging((current) => !current)} type="button">
-            Change Package
-          </button>
-          {user.has_completed_onboarding && <StatusBadge tone="success">Onboarding complete</StatusBadge>}
         </div>
         {message && <div className="success-message">{message}</div>}
         {error && <div className="auth-error">{error}</div>}

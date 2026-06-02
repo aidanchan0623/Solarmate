@@ -88,7 +88,7 @@ export default function StatementModal({ data, onClose, open, type }) {
   <meta charset="utf-8">
   <title>SolarMate ${title}</title>
   <style>
-    body { font-family: Inter, Arial, sans-serif; color: #0b3f46; background: #f5f8f8; padding: 32px; }
+    body { font-family: Outfit, Inter, Arial, sans-serif; color: #0b3f46; background: #f5f8f8; padding: 32px; }
     .statement { max-width: 760px; margin: auto; background: #fff; border: 1px solid #d8ecef; border-radius: 18px; padding: 28px; }
     h1 { margin: 0 0 4px; }
     .brand { color: #27a1ad; font-weight: 900; letter-spacing: .04em; text-transform: uppercase; }

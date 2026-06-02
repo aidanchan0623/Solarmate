@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CheckCircle2, CreditCard, Download, PlusCircle, WalletCards } from 'lucide-react';
+import { CheckCircle2, CreditCard, Download, Leaf, PiggyBank, PlusCircle, WalletCards, Zap } from 'lucide-react';
 import {
   getConsumerBilling,
   getConsumerStatement,
@@ -9,7 +9,6 @@ import {
   topupWallet
 } from '../../api/client';
 import DashboardCard from '../../components/DashboardCard';
-import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import SimulationInput from '../../components/SimulationInput';
 import StatementModal from '../../components/StatementModal';
@@ -27,15 +26,72 @@ function malaysiaDateTime(value) {
   }).format(new Date(value));
 }
 
-const transactionColumns = [
-  { key: 'created_at', label: 'Date', render: (row) => malaysiaDateTime(row.created_at) },
-  { key: 'transaction_type', label: 'Type' },
-  { key: 'amount', label: 'Amount', render: (row) => money(row.amount) },
-  { key: 'status', label: 'Status' },
-  { key: 'description', label: 'Description' }
-];
+function WalletMetricCard({ label, value, className = '', accent = 'border-t-teal-500', icon: Icon, iconClass = 'bg-teal-50 text-teal-600', tint = 'from-white to-slate-50' }) {
+  return (
+    <div className={`flex flex-col rounded-xl border border-slate-200 bg-gradient-to-br ${tint} p-4 border-t-4 shadow-[0_14px_34px_-30px_rgba(15,23,42,0.55)] ${accent} ${className}`}>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <span className="text-slate-500 text-sm font-medium">{label}</span>
+          <strong className="mt-2 block text-slate-900 font-bold text-xl tabular-nums">{value}</strong>
+        </div>
+        {Icon && (
+          <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-sm ${iconClass}`}>
+            <Icon size={18} />
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
 
-export default function ConsumerGreenCreditWallet() {
+function WalletStatusBadge({ status }) {
+  const normalized = String(status || '').toLowerCase();
+  const isSuccessful = ['paid', 'successful', 'settled'].includes(normalized);
+  const isPending = normalized === 'pending';
+
+  return (
+    <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${
+      isSuccessful
+        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+        : isPending
+          ? 'border-amber-200 bg-amber-50 text-amber-700'
+          : 'border-sky-200 bg-sky-50 text-sky-700'
+    }`}>
+      {status}
+    </span>
+  );
+}
+
+function WalletTransactionTable({ rows }) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_18px_48px_-42px_rgba(15,23,42,0.45)]">
+      <table className="w-full min-w-[820px] border-collapse text-left">
+        <thead>
+          <tr className="border-b border-slate-200 bg-slate-900 text-xs font-semibold uppercase tracking-wider text-slate-200">
+            <th className="px-5 py-4">Date</th>
+            <th className="px-5 py-4">Type</th>
+            <th className="px-5 py-4">Amount</th>
+            <th className="px-5 py-4">Status</th>
+            <th className="px-5 py-4">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr className="border-b border-slate-100 transition-colors hover:bg-slate-50" key={row.id || `${row.created_at}-${row.transaction_type}`}>
+              <td className="px-5 py-4 text-sm font-medium text-slate-500">{malaysiaDateTime(row.created_at)}</td>
+              <td className="px-5 py-4 text-sm font-semibold capitalize text-slate-800">{String(row.transaction_type || '').replace('_', ' ')}</td>
+              <td className="px-5 py-4 text-sm font-bold text-slate-900 tabular-nums">{money(row.amount)}</td>
+              <td className="px-5 py-4"><WalletStatusBadge status={row.status} /></td>
+              <td className="px-5 py-4 text-sm text-slate-500">{row.description}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export default function ConsumerGreenCreditWallet({ consumer }) {
   const [wallet, setWallet] = useState(null);
   const [bill, setBill] = useState(null);
   const [transactions, setTransactions] = useState([]);
@@ -140,39 +196,100 @@ export default function ConsumerGreenCreditWallet() {
       <DashboardCard
         action={<StatusBadge tone={walletTone}>{walletLabel}</StatusBadge>}
         eyebrow="Energy Wallet"
-        title="Wallet balance and bill payment"
+        title={consumer?.name || 'Consumer Demo Cafe'}
       >
-        {message && <div className="success-message">{message}</div>}
+        {message && (
+          <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+            {message}
+          </div>
+        )}
         {error && <div className="auth-error">{error}</div>}
-        <div className="wallet-hero">
-          <div className="wallet-balance-card green">
-            <span>Wallet Balance</span>
-            <strong>{money(wallet.balance)}</strong>
-            <small>Prototype payment balance</small>
+        <div className="grid gap-5 lg:grid-cols-[0.9fr_1.35fr]">
+          <div className="relative overflow-hidden rounded-2xl border border-teal-300/30 bg-gradient-to-br from-teal-900 via-cyan-950 to-emerald-900 p-6 shadow-[0_24px_70px_-44px_rgba(13,148,136,0.85)]">
+            <div className="pointer-events-none absolute -right-14 -top-14 h-40 w-40 rounded-full bg-emerald-300/24 blur-3xl" />
+            <div className="pointer-events-none absolute bottom-0 left-0 h-28 w-28 rounded-full bg-cyan-300/14 blur-3xl" />
+            <div className="relative">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <span className="text-slate-400 text-sm font-medium">Wallet Balance</span>
+                  <strong className="mt-3 block text-4xl font-bold tracking-tight text-white tabular-nums">
+                    {money(wallet.balance)}
+                  </strong>
+                </div>
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-400/20 bg-emerald-400/10 text-emerald-300 shadow-[0_0_24px_rgba(16,185,129,0.18)]">
+                  <WalletCards size={20} />
+                </span>
+              </div>
+              <div className="mt-5 rounded-xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm font-medium text-slate-400">Current bill</span>
+                  <strong className="text-lg font-bold text-white tabular-nums">{money(bill.total_bill)}</strong>
+                </div>
+                <div className="mt-2 flex items-center justify-between gap-3">
+                  <span className="text-sm font-medium text-slate-400">Status</span>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${isPaid ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                    {bill.payment_status}
+                  </span>
+                </div>
+              </div>
+              <div className="mt-5 flex flex-wrap items-center gap-3">
+                <button
+                  className="px-4 py-2 bg-emerald-400 text-white font-bold rounded-lg shadow-[0_0_20px_rgba(52,211,153,0.22)] hover:bg-emerald-500 transition-colors flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={isPaid}
+                  onClick={payBill}
+                  type="button"
+                >
+                  <CreditCard size={17} /> Pay Bill
+                </button>
+                <button
+                  className="px-4 py-2 bg-white/10 text-slate-100 font-medium rounded-lg border border-white/15 hover:bg-white/15 transition-colors flex items-center gap-2"
+                  onClick={() => setTopupOpen(true)}
+                  type="button"
+                >
+                  <PlusCircle size={17} /> Top Up
+                </button>
+                <button
+                  className="px-4 py-2 bg-white/10 text-slate-100 font-medium rounded-lg border border-white/15 hover:bg-white/15 transition-colors flex items-center gap-2"
+                  type="button"
+                  onClick={openStatement}
+                >
+                  <Download size={16} /> Statement
+                </button>
+              </div>
+            </div>
           </div>
-          <div className="wallet-detail-grid">
-            <div><span>Current Month Bill</span><strong>{money(bill.total_bill)}</strong></div>
-            <div><span>Payment Status</span><strong>{bill.payment_status}</strong></div>
-            <div><span>Green Credit Used</span><strong>{bill.green_credit_kwh.toLocaleString()} kWh</strong></div>
-            <div><span>TNB Import</span><strong>{bill.tnb_import_kwh.toLocaleString()} kWh</strong></div>
-            <div><span>Percentage Saved</span><strong>{bill.actual_saving_percentage.toFixed(2)}%</strong></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <WalletMetricCard
+              accent="border-t-teal-500"
+              icon={Leaf}
+              iconClass="bg-teal-50 text-teal-600"
+              label="Green Credit"
+              tint="from-teal-50/80 to-white"
+              value={`${bill.green_credit_kwh.toLocaleString()} kWh`}
+            />
+            <WalletMetricCard
+              accent="border-t-sky-500"
+              icon={Zap}
+              iconClass="bg-sky-50 text-sky-600"
+              label="TNB Import"
+              tint="from-sky-50/80 to-white"
+              value={`${bill.tnb_import_kwh.toLocaleString()} kWh`}
+            />
+            <WalletMetricCard
+              accent="border-t-teal-500"
+              className="md:col-span-2"
+              icon={PiggyBank}
+              iconClass="bg-emerald-50 text-emerald-600"
+              label="Percentage Saved"
+              tint="from-emerald-50/80 to-white"
+              value={`${bill.actual_saving_percentage.toFixed(2)}%`}
+            />
           </div>
-        </div>
-        <div className="action-row" style={{ marginTop: 16 }}>
-          <button className="primary-button" onClick={() => setTopupOpen(true)} type="button">
-            <PlusCircle size={17} /> Top Up
-          </button>
-          <button className="secondary-button" disabled={isPaid} onClick={payBill} type="button">
-            <CreditCard size={17} /> Pay Bill
-          </button>
-          <button className="secondary-button" type="button" onClick={openStatement}>
-            <Download size={16} /> Download Monthly Statement
-          </button>
         </div>
       </DashboardCard>
 
       <DashboardCard eyebrow="Wallet history" title="Transactions">
-        <DataTable columns={transactionColumns} rows={transactions} />
+        <WalletTransactionTable rows={transactions} />
       </DashboardCard>
 
       <Modal
