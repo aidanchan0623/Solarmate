@@ -385,5 +385,44 @@ class AdminMonthlyExportRecordResponse(BaseModel):
     status: str
 
 
+class GridIntelligenceWeatherHour(BaseModel):
+    time: str
+    weather_condition: str
+    cloud_cover: float
+    rain_probability: float
+    rain_mm: float
+    shortwave_radiation: float
+    solar_factor: float
+    forecasted_solar_supply_kwh: float
+    forecasted_consumer_demand_kwh: float
+    matched_energy_kwh: float
+    expected_shortfall_kwh: float
+    expected_surplus_kwh: float
+    recommended_tnb_fallback_kwh: float
+    risk_level: str
+
+
+class GridIntelligenceSummary(BaseModel):
+    base_prosumer_supply_kwh: float
+    forecasted_solar_supply_kwh: float
+    forecasted_consumer_demand_kwh: float
+    matched_energy_kwh: float
+    expected_shortfall_kwh: float
+    expected_surplus_kwh: float
+    recommended_tnb_fallback_kwh: float
+    risk_level: str
+    recommendation: str
+
+
+class GridIntelligenceResponse(BaseModel):
+    location: str
+    timezone: str
+    source: str
+    generated_at: str
+    current_hour: GridIntelligenceWeatherHour
+    summary: GridIntelligenceSummary
+    hourly_forecast: list[GridIntelligenceWeatherHour]
+
+
 class MessageResponse(BaseModel):
     message: str

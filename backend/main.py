@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import models
 from database import Base, engine
-from routers import admin, auth, consumer, meter, prosumer, wallet
+from routers import admin, auth, consumer, grid_intelligence, meter, prosumer, wallet
 from schema_migrations import ensure_sqlite_schema
 
 Base.metadata.create_all(bind=engine)
@@ -28,6 +28,7 @@ app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(prosumer.router, prefix="/api/prosumer", tags=["prosumer"])
 app.include_router(consumer.router, prefix="/api/consumer", tags=["consumer"])
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
+app.include_router(grid_intelligence.router, prefix="/api/admin", tags=["admin"])
 app.include_router(meter.router, prefix="/api/meter", tags=["meter"])
 app.include_router(wallet.router, prefix="/api/wallet", tags=["wallet"])
 

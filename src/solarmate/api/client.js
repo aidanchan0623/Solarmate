@@ -170,6 +170,10 @@ export async function getAdminMonthlyExportRecords() {
   return request('/api/admin/monthly-export-records');
 }
 
+export async function getAdminGridIntelligence() {
+  return request('/api/admin/grid-intelligence');
+}
+
 export async function getWallet() {
   return request('/api/wallet');
 }

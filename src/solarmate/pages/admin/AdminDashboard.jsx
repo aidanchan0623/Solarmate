@@ -1,7 +1,8 @@
-import { ArrowLeftRight, BadgeDollarSign, History, LayoutDashboard, ReceiptText, Users } from 'lucide-react';
+import { ArrowLeftRight, BadgeDollarSign, CloudSun, History, LayoutDashboard, ReceiptText, Users } from 'lucide-react';
 import { useState } from 'react';
 import AppShell from '../../components/AppShell';
 import AdminExportHistory from './AdminExportHistory';
+import AdminGridIntelligence from './AdminGridIntelligence';
 import AdminOverview from './AdminOverview';
 import AdminRevenue from './AdminRevenue';
 import AdminSupplyDemand from './AdminSupplyDemand';
@@ -12,6 +13,7 @@ const navItems = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'users', label: 'Users', icon: Users },
   { id: 'supply-demand', label: 'Supply & Demand', icon: ArrowLeftRight },
+  { id: 'grid-intelligence', label: 'Grid Intelligence', icon: CloudSun },
   { id: 'transactions', label: 'Transactions', icon: ReceiptText },
   { id: 'export-history', label: 'Monthly Export Records', icon: History },
   { id: 'revenue', label: 'Revenue', icon: BadgeDollarSign }
@@ -32,6 +34,11 @@ const pages = {
     title: 'Supply & Demand',
     subtitle: 'Review allocation health and matching performance.',
     component: AdminSupplyDemand
+  },
+  'grid-intelligence': {
+    title: 'Grid Intelligence',
+    subtitle: 'Weather-based solar forecasting and TNB fallback advisory.',
+    component: AdminGridIntelligence
   },
   transactions: {
     title: 'Transactions',
