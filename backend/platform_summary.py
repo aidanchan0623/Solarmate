@@ -22,6 +22,11 @@ def platform_user_counts(db: Session) -> dict:
 
 def upsert_monthly_summary(db: Session, month_key: str) -> models.PlatformMonthlySummary:
     counts = platform_user_counts(db)
+    date_filters = [models.ProsumerDailyExport.date.like(f"{month_key}-%")]
+    usage_date_filters = [models.ConsumerDailyUsage.date.like(f"{month_key}-%")]
+    if energy.is_current_month(month_key):
+        date_filters.append(models.ProsumerDailyExport.date <= energy.today_key())
+        usage_date_filters.append(models.ConsumerDailyUsage.date <= energy.today_key())
     supply = (
         db.query(func.sum(models.ProsumerDailyExport.exported_kwh))
         .join(models.User, models.User.id == models.ProsumerDailyExport.user_id)
@@ -29,7 +34,7 @@ def upsert_monthly_summary(db: Session, month_key: str) -> models.PlatformMonthl
             models.User.role == "prosumer",
             models.User.status == "active",
             models.User.has_completed_onboarding.is_(True),
-            models.ProsumerDailyExport.date.like(f"{month_key}-%"),
+            *date_filters,
         )
         .scalar()
         or 0
@@ -41,7 +46,7 @@ def upsert_monthly_summary(db: Session, month_key: str) -> models.PlatformMonthl
             models.User.role == "consumer",
             models.User.status == "active",
             models.User.has_completed_onboarding.is_(True),
-            models.ConsumerDailyUsage.date.like(f"{month_key}-%"),
+            *usage_date_filters,
         )
         .scalar()
         or 0
@@ -94,3 +99,9 @@ def refresh_platform_monthly_summaries(db: Session) -> None:
     for month_key in sorted(month_keys):
         summary = upsert_monthly_summary(db, month_key)
         summary.status = "Pending" if month_key == latest else "Settled"
+
+
+def refresh_current_month_summary(db: Session) -> None:
+    month_key = energy.current_month_key()
+    summary = upsert_monthly_summary(db, month_key)
+    summary.status = "Pending"

@@ -71,6 +71,18 @@ export default function ConsumerOverview({ consumer }) {
             </div>
           </div>
 
+          <div className="progress-block">
+            <div>
+              <span>Month-to-date progress</span>
+              <strong>
+                Day {overview.current_day_of_month} / {overview.days_in_month} · {overview.month_progress_percentage.toFixed(1)}% of month elapsed
+              </strong>
+            </div>
+            <div className="progress-track">
+              <span style={{ width: `${Math.min(overview.month_progress_percentage, 100)}%` }} />
+            </div>
+          </div>
+
           <div className="summary-metrics compact">
             <div>
               <span>Green Credit Remaining</span>

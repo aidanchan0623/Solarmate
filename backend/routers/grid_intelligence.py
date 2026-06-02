@@ -18,11 +18,11 @@ router = APIRouter()
 
 OPEN_METEO_URL = (
     "https://api.open-meteo.com/v1/forecast?"
-    "latitude=3.1412&longitude=101.6865&"
+    "latitude=3.1213&longitude=101.6579&"
     "hourly=precipitation_probability,rain,weather_code,cloud_cover,shortwave_radiation&"
-    "timezone=Asia%2FKuala_Lumpur&forecast_days=1"
+    "timezone=Asia%2FSingapore"
 )
-LOCATION = "Kuala Lumpur"
+LOCATION = "University Malaya"
 TIMEZONE = "Asia/Kuala_Lumpur"
 CACHE_TTL_SECONDS = 600
 
@@ -98,6 +98,27 @@ def solar_factor(shortwave_radiation: float, cloud_cover: float, rain_probabilit
     return round(min(max(raw_factor, 0.10), 1.00), 3)
 
 
+def time_of_day_factor(forecast_time: datetime) -> float:
+    hour = forecast_time.hour + (forecast_time.minute / 60)
+    if hour >= 20 or hour < 6:
+        return 0.0
+    daylight = math.sin(((hour - 6) / 14) * math.pi)
+    return round(min(max(daylight, 0), 1), 3)
+
+
+def adjusted_solar_factor(raw: dict) -> float:
+    weather_factor = solar_factor(
+        raw["shortwave_radiation"],
+        raw["cloud_cover"],
+        raw["rain_probability"],
+        raw["rain_mm"],
+    )
+    daylight_factor = time_of_day_factor(raw["time"])
+    if daylight_factor <= 0:
+        return 0.0
+    return round(min(max(weather_factor * daylight_factor, 0), 1), 3)
+
+
 def grid_risk(expected_shortfall: float, expected_surplus: float, demand: float) -> tuple[str, str]:
     if demand <= 0:
         return "Low", "No active consumer green demand is available. Continue monitoring platform onboarding."
@@ -115,12 +136,7 @@ def grid_risk(expected_shortfall: float, expected_surplus: float, demand: float)
 
 
 def advisory_hour(raw: dict, base_supply: float, consumer_demand: float) -> schemas.GridIntelligenceWeatherHour:
-    factor = solar_factor(
-        raw["shortwave_radiation"],
-        raw["cloud_cover"],
-        raw["rain_probability"],
-        raw["rain_mm"],
-    )
+    factor = adjusted_solar_factor(raw)
     forecasted_supply = base_supply * factor
     matched = min(forecasted_supply, consumer_demand)
     shortfall = max(consumer_demand - forecasted_supply, 0)

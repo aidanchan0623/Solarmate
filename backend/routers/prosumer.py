@@ -46,7 +46,10 @@ def monthly_rows(user: models.User, db: Session) -> list[schemas.ProsumerMonthly
     simulation.ensure_prosumer_records(user, db)
     records = (
         db.query(models.ProsumerDailyExport)
-        .filter(models.ProsumerDailyExport.user_id == user.id)
+        .filter(
+            models.ProsumerDailyExport.user_id == user.id,
+            models.ProsumerDailyExport.date <= energy.today_key(),
+        )
         .order_by(models.ProsumerDailyExport.date.asc())
         .all()
     )
@@ -130,7 +133,8 @@ def get_daily_export(
 ):
     simulation.ensure_prosumer_records(current_user, db)
     query = db.query(models.ProsumerDailyExport).filter(
-        models.ProsumerDailyExport.user_id == current_user.id
+        models.ProsumerDailyExport.user_id == current_user.id,
+        models.ProsumerDailyExport.date <= energy.today_key(),
     )
     if month:
         query = query.filter(models.ProsumerDailyExport.date.like(f"{month}-%"))
@@ -214,8 +218,14 @@ def get_overview(
             generated_kwh=0,
             local_consumption_kwh=0,
             exported_kwh=0,
+            current_day_of_month=energy.current_day_of_month(),
+            days_in_month=energy.days_in_month(),
+            month_progress_percentage=energy.current_month_progress_percentage(),
+            quota_progress_percentage=0,
             **split,
         )
+    quota = profile.export_commitment_kwh or 0
+    quota_progress = min((latest.actual_exported_kwh / quota) * 100, 100) if quota > 0 else 0
     return schemas.ProsumerOverviewResponse(
         username=current_user.username,
         display_name=profile.display_name,
@@ -230,6 +240,10 @@ def get_overview(
         solar_mate_earnings=latest.solar_mate_earnings,
         solar_atap_earnings=latest.solar_atap_earnings,
         total_earnings=latest.total_earnings,
+        current_day_of_month=energy.current_day_of_month(),
+        days_in_month=energy.days_in_month(),
+        month_progress_percentage=energy.current_month_progress_percentage(),
+        quota_progress_percentage=round(quota_progress, 2),
     )
 
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CloudRain, CloudSun, RefreshCw, ShieldAlert, Zap } from 'lucide-react';
+import { CloudRain, CloudSun, RefreshCw, ShieldAlert } from 'lucide-react';
 import { getAdminGridIntelligence } from '../../api/client';
 import CompactGroupedBarChart from '../../components/CompactGroupedBarChart';
 import DashboardCard from '../../components/DashboardCard';
@@ -101,6 +101,12 @@ export default function AdminGridIntelligence() {
   }
 
   const { current_hour: currentHour, summary } = data;
+  const rainStatus = currentHour.rain_mm > 0 || currentHour.rain_probability >= 50
+    ? `Rain watch: ${percent(currentHour.rain_probability)}`
+    : `No rain signal: ${percent(currentHour.rain_probability)}`;
+  const balanceSignal = summary.expected_surplus_kwh > 0
+    ? `Solar surplus: ${moneylessKwh(summary.expected_surplus_kwh)}`
+    : `Solar shortfall: ${moneylessKwh(summary.expected_shortfall_kwh)}`;
 
   return (
     <div className="page-stack">
@@ -118,35 +124,35 @@ export default function AdminGridIntelligence() {
         </p>
         {error && <div className="auth-error">Unable to refresh advisory: {error}</div>}
         <div className="summary-metrics compact important-metrics">
-          <div>
-            <span>Weather Condition</span>
-            <strong>{currentHour.weather_condition}</strong>
-            <small>{data.location}</small>
+          <div className="metric-emphasis">
+            <span>Grid Risk Level</span>
+            <strong>{summary.risk_level}</strong>
+            <small>Updated {malaysiaDateTime(data.generated_at)}</small>
           </div>
-          <div>
-            <span>Solar Factor</span>
-            <strong>{percent(currentHour.solar_factor * 100)}</strong>
-            <small>Weather-adjusted solar strength</small>
+          <div className="metric-emphasis">
+            <span>Weather / Rain Status</span>
+            <strong>{rainStatus}</strong>
+            <small>{currentHour.weather_condition} at {data.location}</small>
           </div>
           <div className="metric-emphasis">
             <span>Forecasted Solar Supply</span>
             <strong>{moneylessKwh(summary.forecasted_solar_supply_kwh)}</strong>
             <small>Base: {moneylessKwh(summary.base_prosumer_supply_kwh)}</small>
           </div>
-          <div>
-            <span>Consumer Green Demand</span>
-            <strong>{moneylessKwh(summary.forecasted_consumer_demand_kwh)}</strong>
-            <small>Active package demand</small>
-          </div>
           <div className="metric-emphasis">
             <span>Required TNB Fallback</span>
             <strong>{moneylessKwh(summary.recommended_tnb_fallback_kwh)}</strong>
             <small>Advisory fallback supply</small>
           </div>
+          <div className="metric-emphasis">
+            <span>Solar Shortfall / Surplus</span>
+            <strong>{balanceSignal}</strong>
+            <small>Demand: {moneylessKwh(summary.forecasted_consumer_demand_kwh)}</small>
+          </div>
           <div>
-            <span>Grid Risk Level</span>
-            <strong>{summary.risk_level}</strong>
-            <small>Updated {malaysiaDateTime(data.generated_at)}</small>
+            <span>Solar Factor</span>
+            <strong>{percent(currentHour.solar_factor * 100)}</strong>
+            <small>Weather and daylight adjusted</small>
           </div>
         </div>
         <div className="action-row" style={{ marginTop: 16 }}>

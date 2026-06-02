@@ -50,6 +50,29 @@ def current_month_key() -> str:
     return f"{today.year}-{today.month:02d}"
 
 
+def current_day_of_month() -> int:
+    return malaysia_today().day
+
+
+def days_in_month(year: int | None = None, month: int | None = None) -> int:
+    today = malaysia_today()
+    target_year = year or today.year
+    target_month = month or today.month
+    return monthrange(target_year, target_month)[1]
+
+
+def current_month_progress_percentage() -> float:
+    return round((current_day_of_month() / days_in_month()) * 100, 2)
+
+
+def is_current_month(key: str) -> bool:
+    return key == current_month_key()
+
+
+def today_key() -> str:
+    return malaysia_today().isoformat()
+
+
 def recent_dates(count: int = 7) -> list[str]:
     today = malaysia_today()
     return [(today - timedelta(days=offset)).isoformat() for offset in reversed(range(count))]
@@ -68,6 +91,14 @@ def month_dates(year: int, month: int) -> list[str]:
     return [date(year, month, day).isoformat() for day in range(1, days + 1)]
 
 
+def month_dates_to_today(year: int, month: int) -> list[str]:
+    all_dates = month_dates(year, month)
+    current_today = today_key()
+    if f"{year}-{month:02d}" != current_month_key():
+        return all_dates
+    return [day for day in all_dates if day <= current_today]
+
+
 def latest_month_from_records(records, date_attr: str = "date") -> str | None:
     if not records:
         return None
@@ -76,7 +107,10 @@ def latest_month_from_records(records, date_attr: str = "date") -> str | None:
 
 def group_records_by_month(records):
     grouped = defaultdict(list)
+    today = today_key()
     for record in records:
+        if record.date > today:
+            continue
         grouped[month_key(record.date)].append(record)
     return grouped
 

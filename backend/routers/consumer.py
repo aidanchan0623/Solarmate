@@ -49,7 +49,10 @@ def monthly_rows(user: models.User, db: Session) -> list[schemas.ConsumerMonthly
     simulation.ensure_consumer_records(user, db)
     records = (
         db.query(models.ConsumerDailyUsage)
-        .filter(models.ConsumerDailyUsage.user_id == user.id)
+        .filter(
+            models.ConsumerDailyUsage.user_id == user.id,
+            models.ConsumerDailyUsage.date <= energy.today_key(),
+        )
         .order_by(models.ConsumerDailyUsage.date.asc())
         .all()
     )
@@ -186,7 +189,10 @@ def get_live_meter(
     simulation.ensure_consumer_records(current_user, db)
     records = (
         db.query(models.ConsumerDailyUsage)
-        .filter(models.ConsumerDailyUsage.user_id == current_user.id)
+        .filter(
+            models.ConsumerDailyUsage.user_id == current_user.id,
+            models.ConsumerDailyUsage.date <= energy.today_key(),
+        )
         .order_by(models.ConsumerDailyUsage.date.desc())
         .limit(limit or 7)
         .all()
@@ -229,8 +235,17 @@ def get_overview(
             selected_package=profile.selected_package,
             package_allocation_kwh=profile.package_allocation_kwh,
             month="No records",
+            current_day_of_month=energy.current_day_of_month(),
+            days_in_month=energy.days_in_month(),
+            month_progress_percentage=energy.current_month_progress_percentage(),
+            usage_progress_percentage=0,
             **bill,
         )
+    usage_progress = (
+        min((latest.green_credit_kwh / (profile.package_allocation_kwh or latest.green_credit_kwh or 1)) * 100, 100)
+        if profile.package_allocation_kwh
+        else 0
+    )
     return schemas.ConsumerOverviewResponse(
         username=current_user.username,
         business_name=profile.business_name,
@@ -244,6 +259,10 @@ def get_overview(
         total_bill=latest.total_bill,
         savings=latest.savings,
         actual_saving_percentage=latest.actual_saving_percentage,
+        current_day_of_month=energy.current_day_of_month(),
+        days_in_month=energy.days_in_month(),
+        month_progress_percentage=energy.current_month_progress_percentage(),
+        usage_progress_percentage=round(usage_progress, 2),
     )
 
 

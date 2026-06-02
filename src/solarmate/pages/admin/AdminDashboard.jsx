@@ -37,7 +37,7 @@ const pages = {
   },
   'grid-intelligence': {
     title: 'Grid Intelligence',
-    subtitle: 'Weather-based solar forecasting and TNB fallback advisory.',
+    subtitle: 'Weather-based solar forecasting and TNB fallback advisory for utility-side decision support.',
     component: AdminGridIntelligence
   },
   transactions: {

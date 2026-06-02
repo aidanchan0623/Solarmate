@@ -94,6 +94,10 @@ class ProsumerOverviewResponse(BaseModel):
     solar_mate_earnings: float
     solar_atap_earnings: float
     total_earnings: float
+    current_day_of_month: int
+    days_in_month: int
+    month_progress_percentage: float
+    quota_progress_percentage: float
 
 
 class ProsumerMonthlyExportResponse(BaseModel):
@@ -225,6 +229,10 @@ class ConsumerOverviewResponse(BaseModel):
     total_bill: float
     savings: float
     actual_saving_percentage: float
+    current_day_of_month: int
+    days_in_month: int
+    month_progress_percentage: float
+    usage_progress_percentage: float
 
 
 class ConsumerBillingResponse(BaseModel):
@@ -367,6 +375,9 @@ class AdminOverviewResponse(BaseModel):
     prosumer_payout: float
     grid_toll: float
     consumer_rate_based_savings: float
+    current_day_of_month: int
+    days_in_month: int
+    month_progress_percentage: float
 
 
 class AdminMonthlyExportRecordResponse(BaseModel):

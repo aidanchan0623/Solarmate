@@ -16,12 +16,22 @@ CONSUMER_PACKAGE_BY_ALLOCATION = {
     2000: "Business Plus",
 }
 
-SIMULATION_MONTHS = energy.recent_months(5)
 DEMO_EXPORT_TARGETS = [520, 480, 610, 530, 620]
 DEMO_USAGE_TARGETS = [1080, 1125, 1160, 1190, 1200]
 DEMO_GREEN_CREDIT_TARGETS = [900, 950, 1000, 1000, 1000]
 PROSUMER_EXPORT_FACTORS = [0.96, 0.98, 1.0, 1.02, 1.04]
 CONSUMER_DEMAND_FACTORS = [0.96, 0.97, 0.985, 0.995, 1.0]
+
+
+def simulation_months() -> list[tuple[int, int]]:
+    return energy.recent_months(5)
+
+
+def required_dates() -> set[str]:
+    dates: set[str] = set()
+    for year, month in simulation_months():
+        dates.update(energy.month_dates_to_today(year, month))
+    return dates
 
 
 def user_text(user: models.User) -> str:
@@ -136,7 +146,7 @@ def consumer_usage_targets(user: models.User) -> tuple[list[float], list[float]]
         return DEMO_USAGE_TARGETS, [min(allocation, value) for value in DEMO_GREEN_CREDIT_TARGETS]
 
     rng = seeded_rng(user, "consumer-targets")
-    usage_targets = [round(allocation * rng.uniform(1.04, 1.18), 2) for _ in SIMULATION_MONTHS]
+    usage_targets = [round(allocation * rng.uniform(1.04, 1.18), 2) for _ in simulation_months()]
     credit_targets = [
         round(min(allocation, usage * rng.uniform(0.84, 0.94)), 2)
         for usage in usage_targets
@@ -157,7 +167,7 @@ def clear_user_energy_records(db, user: models.User) -> None:
 
 def create_prosumer_daily_exports(db, user: models.User) -> None:
     rng = seeded_rng(user, "prosumer-daily")
-    for (year, month), target_exported in zip(SIMULATION_MONTHS, prosumer_export_targets(user)):
+    for (year, month), target_exported in zip(simulation_months(), prosumer_export_targets(user)):
         daily_exports = generate_daily_values_for_month(year, month, target_exported, rng)
         for date_string, exported in zip(energy.month_dates(year, month), daily_exports):
             local_consumption = round(max(2.0, exported * rng.uniform(0.45, 0.75)), 2)
@@ -176,7 +186,7 @@ def create_prosumer_daily_exports(db, user: models.User) -> None:
 def create_consumer_daily_usage(db, user: models.User) -> None:
     rng = seeded_rng(user, "consumer-daily")
     usage_targets, credit_targets = consumer_usage_targets(user)
-    for (year, month), target_usage, target_credit in zip(SIMULATION_MONTHS, usage_targets, credit_targets):
+    for (year, month), target_usage, target_credit in zip(simulation_months(), usage_targets, credit_targets):
         usage_values = generate_daily_values_for_month(year, month, target_usage, rng)
         green_values = allocate_daily_green_credit(usage_values, target_credit)
         for date_string, usage, green_credit in zip(energy.month_dates(year, month), usage_values, green_values):
@@ -195,13 +205,17 @@ def ensure_prosumer_records(user: models.User, db, force: bool = False) -> bool:
     if not user.prosumer_profile:
         return False
     normalize_demo_prosumer_profile(user)
-    has_records = (
-        db.query(models.ProsumerDailyExport)
-        .filter(models.ProsumerDailyExport.user_id == user.id)
-        .first()
-        is not None
-    )
-    if has_records and not force:
+    needed_dates = required_dates()
+    existing_dates = {
+        row[0]
+        for row in db.query(models.ProsumerDailyExport.date)
+        .filter(
+            models.ProsumerDailyExport.user_id == user.id,
+            models.ProsumerDailyExport.date.in_(needed_dates),
+        )
+        .all()
+    }
+    if needed_dates.issubset(existing_dates) and not force:
         db.commit()
         db.refresh(user)
         return False
@@ -217,13 +231,17 @@ def ensure_consumer_records(user: models.User, db, force: bool = False) -> bool:
     if not user.consumer_profile:
         return False
     normalize_demo_consumer_profile(user)
-    has_records = (
-        db.query(models.ConsumerDailyUsage)
-        .filter(models.ConsumerDailyUsage.user_id == user.id)
-        .first()
-        is not None
-    )
-    if has_records and not force:
+    needed_dates = required_dates()
+    existing_dates = {
+        row[0]
+        for row in db.query(models.ConsumerDailyUsage.date)
+        .filter(
+            models.ConsumerDailyUsage.user_id == user.id,
+            models.ConsumerDailyUsage.date.in_(needed_dates),
+        )
+        .all()
+    }
+    if needed_dates.issubset(existing_dates) and not force:
         db.commit()
         db.refresh(user)
         return False

@@ -59,6 +59,28 @@ export default function ProsumerOverview({ prosumer }) {
               <StatusBadge tone="success">{prosumer.systemStatus}</StatusBadge>
             </div>
 
+            <div className="progress-block">
+              <div>
+                <span>Month-to-date progress</span>
+                <strong>
+                  Day {data.current_day_of_month} / {data.days_in_month} · {data.month_progress_percentage.toFixed(1)}% of month elapsed
+                </strong>
+              </div>
+              <div className="progress-track">
+                <span style={{ width: `${Math.min(data.month_progress_percentage, 100)}%` }} />
+              </div>
+            </div>
+
+            <div className="progress-block">
+              <div>
+                <span>Export quota progress</span>
+                <strong>{data.exported_kwh.toLocaleString()} / {(data.export_commitment_kwh || 0).toLocaleString()} kWh exported so far</strong>
+              </div>
+              <div className="progress-track">
+                <span style={{ width: `${Math.min(data.quota_progress_percentage, 100)}%` }} />
+              </div>
+            </div>
+
             <div className="summary-metrics compact">
               <div>
                 <span>Actual Exported This Month</span>

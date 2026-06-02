@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session, joinedload
 import energy as energy_utils
 import meter_utils
 import models
+import platform_summary
 import schemas
 from auth import require_role
 from database import get_db
@@ -150,6 +151,8 @@ def get_overview(
     current_user: models.User = Depends(require_role("admin")),
     db: Session = Depends(get_db),
 ):
+    platform_summary.refresh_current_month_summary(db)
+    db.commit()
     counts = count_users(db)
     summary = latest_platform_summary(db)
     metrics = {
@@ -186,6 +189,9 @@ def get_overview(
         prosumer_payout=currency(metrics["prosumer_payout"]),
         grid_toll=currency(metrics["grid_toll"]),
         consumer_rate_based_savings=currency(metrics["consumer_savings"]),
+        current_day_of_month=energy_utils.current_day_of_month(),
+        days_in_month=energy_utils.days_in_month(),
+        month_progress_percentage=energy_utils.current_month_progress_percentage(),
     )
 
 
@@ -208,6 +214,8 @@ def get_monthly_export_records(
     current_user: models.User = Depends(require_role("admin")),
     db: Session = Depends(get_db),
 ):
+    platform_summary.refresh_platform_monthly_summaries(db)
+    db.commit()
     summaries = (
         db.query(models.PlatformMonthlySummary)
         .order_by(models.PlatformMonthlySummary.month_key.asc())
