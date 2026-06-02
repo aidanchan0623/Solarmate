@@ -99,9 +99,6 @@ export default function AdminGridIntelligence() {
   }
 
   const { current_hour: currentHour, summary } = data;
-  const balanceSignal = summary.expected_surplus_kwh > 0
-    ? `Solar surplus: ${moneylessKwh(summary.expected_surplus_kwh)}`
-    : `Solar shortfall: ${moneylessKwh(summary.expected_shortfall_kwh)}`;
 
   return (
     <div className="page-stack">
@@ -118,51 +115,52 @@ export default function AdminGridIntelligence() {
           not direct TNB grid control.
         </p>
         {error && <div className="auth-error">Unable to refresh advisory: {error}</div>}
-        <div className="summary-metrics compact important-metrics">
-          <div className="metric-emphasis">
-            <span>Grid Risk Level</span>
-            <strong>{summary.risk_level}</strong>
-            <small>Utility-side decision support</small>
+        <div className="grid-intelligence-summary">
+          <div className="grid-intelligence-row grid-intelligence-row-main">
+            <div className="grid-intelligence-card grid-intelligence-card-large">
+              <span>Grid Risk Level</span>
+              <strong>{summary.risk_level}</strong>
+              <small>Utility-side decision support</small>
+            </div>
+            <div className="grid-intelligence-card grid-intelligence-card-large">
+              <span><CloudSun size={16} /> Forecasted Solar Supply</span>
+              <strong>{moneylessKwh(summary.forecasted_solar_supply_kwh)}</strong>
+              <small>Base: {moneylessKwh(summary.base_prosumer_supply_kwh)}</small>
+            </div>
           </div>
-          <div className="metric-emphasis">
-            <span><CloudRain size={16} /> Rain Probability</span>
-            <strong>{wholePercent(currentHour.rain_probability)}</strong>
-            <small>{currentHour.weather_condition} at {data.location}</small>
+          <div className="grid-intelligence-row grid-intelligence-row-medium">
+            <div className="grid-intelligence-card grid-intelligence-card-medium">
+              <span>Required TNB Fallback</span>
+              <strong>{moneylessKwh(summary.recommended_tnb_fallback_kwh)}</strong>
+              <small>Advisory fallback supply</small>
+            </div>
+            <div className="grid-intelligence-card grid-intelligence-card-medium">
+              <span><CloudRain size={16} /> Rain Probability</span>
+              <strong>{wholePercent(currentHour.rain_probability)}</strong>
+              <small>Open-Meteo hourly forecast</small>
+            </div>
+            <div className="grid-intelligence-card grid-intelligence-card-medium">
+              <span>Solar Potential</span>
+              <strong>{percent(currentHour.solar_factor * 100)}</strong>
+              <small>Based mainly on shortwave radiation</small>
+            </div>
           </div>
-          <div className="metric-emphasis">
-            <span><CloudSun size={16} /> Forecasted Solar Supply</span>
-            <strong>{moneylessKwh(summary.forecasted_solar_supply_kwh)}</strong>
-            <small>Base: {moneylessKwh(summary.base_prosumer_supply_kwh)}</small>
-          </div>
-          <div className="metric-emphasis">
-            <span>Required TNB Fallback</span>
-            <strong>{moneylessKwh(summary.recommended_tnb_fallback_kwh)}</strong>
-            <small>Advisory fallback supply</small>
-          </div>
-          <div className="metric-emphasis">
-            <span>Solar Shortfall / Surplus</span>
-            <strong>{balanceSignal}</strong>
-            <small>Demand: {moneylessKwh(summary.forecasted_consumer_demand_kwh)}</small>
-          </div>
-          <div>
-            <span>Solar Potential</span>
-            <strong>{percent(currentHour.solar_factor * 100)}</strong>
-            <small>Radiation-led solar factor</small>
-          </div>
-          <div>
-            <span>Shortwave Radiation</span>
-            <strong>{currentHour.shortwave_radiation.toLocaleString()} W/m2</strong>
-            <small>Primary solar input</small>
-          </div>
-          <div>
-            <span>Cloud Cover</span>
-            <strong>{wholePercent(currentHour.cloud_cover)}</strong>
-            <small>Secondary solar penalty</small>
-          </div>
-          <div>
-            <span>Rain Amount</span>
-            <strong>{currentHour.rain_mm.toFixed(2)} mm</strong>
-            <small>Actual hourly rain</small>
+          <div className="grid-intelligence-row grid-intelligence-row-detail">
+            <div className="grid-intelligence-card grid-intelligence-card-detail">
+              <span>Shortwave Radiation</span>
+              <strong>{currentHour.shortwave_radiation.toLocaleString()} W/m2</strong>
+              <small>Primary solar input</small>
+            </div>
+            <div className="grid-intelligence-card grid-intelligence-card-detail">
+              <span>Cloud Cover</span>
+              <strong>{wholePercent(currentHour.cloud_cover)}</strong>
+              <small>Secondary solar penalty</small>
+            </div>
+            <div className="grid-intelligence-card grid-intelligence-card-detail">
+              <span>Rain Amount</span>
+              <strong>{currentHour.rain_mm.toFixed(2)} mm</strong>
+              <small>Actual hourly rain</small>
+            </div>
           </div>
         </div>
         <div className="formula-panel" style={{ marginTop: 16 }}>
