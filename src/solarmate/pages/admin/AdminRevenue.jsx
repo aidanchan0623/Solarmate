@@ -8,9 +8,44 @@ import { Activity, CircleDollarSign, TrendingUp, Zap } from 'lucide-react';
 
 const REVENUE_OVERVIEW_CACHE_KEY = 'solarmate-admin-revenue-overview';
 const MONTHLY_EXPORT_CACHE_KEY = 'solarmate-admin-monthly-export-records';
+const MALAYSIA_TIME_ZONE = 'Asia/Kuala_Lumpur';
 
 let revenueOverviewCache = null;
 let revenueMonthlyRecordsCache = null;
+
+function malaysiaDateParts(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: MALAYSIA_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return {
+    year: Number(values.year),
+    month: Number(values.month),
+    day: Number(values.day)
+  };
+}
+
+function daysInMalaysiaMonth(year, month) {
+  return new Date(year, month, 0).getDate();
+}
+
+function currentMalaysiaMonthProgress() {
+  const { year, month, day } = malaysiaDateParts();
+  return {
+    currentDay: Math.max(Number(day) || 1, 1),
+    daysInMonth: Math.max(daysInMalaysiaMonth(year, month) || 1, 1)
+  };
+}
+
+function calculateProjectedMonthlyRevenue(monthToDateRevenue, currentDay, daysInMonth) {
+  const safeRevenue = Number(monthToDateRevenue) || 0;
+  const safeCurrentDay = Math.max(Number(currentDay) || 1, 1);
+  const safeDaysInMonth = Math.max(Number(daysInMonth) || safeCurrentDay, 1);
+  return Number(((safeRevenue / safeCurrentDay) * safeDaysInMonth).toFixed(2));
+}
 
 function readCache(key, memoryValue) {
   if (memoryValue) return memoryValue;
@@ -115,9 +150,18 @@ function RevenueTrendTable({ rows }) {
 }
 
 export default function AdminRevenue() {
+  const malaysiaProgress = currentMalaysiaMonthProgress();
+  const cachedOverview = readRevenueOverviewCache();
+  const fallbackMonthToDateRevenue = calculateProjectedMonthlyRevenue(
+    adminMetrics.totalSolarMateRevenue,
+    malaysiaProgress.daysInMonth,
+    malaysiaProgress.currentDay
+  );
   const [overview, setOverview] = useState({
-    matched_green_energy: readRevenueOverviewCache()?.matched_green_energy ?? adminMetrics.totalMatchedEnergy,
-    solar_mate_revenue: readRevenueOverviewCache()?.solar_mate_revenue ?? adminMetrics.totalSolarMateRevenue
+    matched_green_energy: cachedOverview?.matched_green_energy ?? adminMetrics.totalMatchedEnergy,
+    solar_mate_revenue: cachedOverview?.solar_mate_revenue ?? fallbackMonthToDateRevenue,
+    current_day_of_month: cachedOverview?.current_day_of_month ?? malaysiaProgress.currentDay,
+    days_in_month: cachedOverview?.days_in_month ?? malaysiaProgress.daysInMonth
   });
   const [monthlyRecords, setMonthlyRecords] = useState(() => readMonthlyRecordsCache());
   const [error, setError] = useState('');
@@ -178,7 +222,16 @@ export default function AdminRevenue() {
     }];
   }, [monthlyRecords, overview]);
 
-  const platformRevenue = calculatePlatformRevenue(overview.matched_green_energy);
+  const monthToDateRevenue = Number(
+    overview.solar_mate_revenue ?? calculatePlatformRevenue(overview.matched_green_energy)
+  ) || 0;
+  const currentDayOfMonth = Number(overview.current_day_of_month) || malaysiaProgress.currentDay;
+  const daysInCurrentMonth = Number(overview.days_in_month) || malaysiaProgress.daysInMonth;
+  const projectedMonthlyRevenue = calculateProjectedMonthlyRevenue(
+    monthToDateRevenue,
+    currentDayOfMonth,
+    daysInCurrentMonth
+  );
 
   return (
     <div className="page-stack">
@@ -192,7 +245,7 @@ export default function AdminRevenue() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <span className="rounded-full border border-teal-300/20 bg-teal-300/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-teal-200">
-                  Platform spread revenue
+                  Platform Spread Revenue
                 </span>
                 <span className="rounded-full border border-emerald-300/15 bg-emerald-300/8 px-3 py-1 text-xs font-semibold text-emerald-100">
                   Live month projection
@@ -200,7 +253,7 @@ export default function AdminRevenue() {
               </div>
               <div className="mt-5 flex flex-wrap items-end gap-4">
                 <strong className="block text-6xl font-black tracking-tight text-white tabular-nums">
-                  RM{platformRevenue.toLocaleString(undefined, {
+                  RM{monthToDateRevenue.toLocaleString(undefined, {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2
                   })}
@@ -211,7 +264,7 @@ export default function AdminRevenue() {
                 </span>
               </div>
               <p className="mt-4 max-w-xl text-sm font-medium leading-relaxed text-slate-400">
-                Matched energy x RM{PLATFORM_SPREAD_RATE.toFixed(2)} per kWh.
+                Month-to-date spread revenue from matched energy x RM{PLATFORM_SPREAD_RATE.toFixed(2)} per kWh.
               </p>
               <div className="mt-6 grid gap-4 md:grid-cols-2">
                 <RevenueInsight
@@ -222,11 +275,11 @@ export default function AdminRevenue() {
                   value={`${overview.matched_green_energy.toLocaleString()} kWh`}
                 />
                 <RevenueInsight
-                  detail="Latest monthly run-rate"
+                  detail="Projected full-month run-rate"
                   icon={CircleDollarSign}
                   label="Projected monthly"
                   tone="sky"
-                  value={`RM${overview.solar_mate_revenue.toLocaleString(undefined, {
+                  value={`RM${projectedMonthlyRevenue.toLocaleString(undefined, {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2
                   })}`}
@@ -235,11 +288,11 @@ export default function AdminRevenue() {
               <div className="mt-6 rounded-3xl border border-white/10 bg-slate-950/35 p-4">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <p className="text-sm font-semibold text-slate-300">
-                    Revenue = matched kWh x RM{PLATFORM_SPREAD_RATE.toFixed(2)}
+                    Month-to-date revenue = matched kWh x RM{PLATFORM_SPREAD_RATE.toFixed(2)}
                   </p>
                   <div className="inline-flex w-fit items-center gap-2 rounded-2xl border border-teal-300/20 bg-teal-300/10 px-4 py-2 text-sm font-bold text-teal-100">
                     <CircleDollarSign size={16} />
-                    RM{platformRevenue.toLocaleString(undefined, {
+                    RM{monthToDateRevenue.toLocaleString(undefined, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2
                     })}
