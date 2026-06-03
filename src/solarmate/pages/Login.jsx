@@ -112,11 +112,11 @@ export default function Login({ onLogin }) {
         </div>
 
         <div className="login-copy">
-          <p className="eyebrow">Peer-to-peer solar sharing platform</p>
-          <h1 className="font-extrabold">Peer-to-peer solar sharing, realised.</h1>
+          <p className="login-tagline">Smarter Energy, Smarter Connections</p>
+          <h1 className="font-extrabold">Peer-to-peer solar trading, realised.</h1>
           <p>
-            SolarMate connects solar prosumers and local consumers through intelligent energy matching,
-            making renewable energy easier to share, track, and benefit from.
+            SolarMate connects solar prosumers with local consumers through intelligent energy matching,
+            making renewable energy easier to trade, track, and benefit from.
           </p>
           <div className="landing-chip-grid">
             {valueChips.map(({ icon: Icon, label, tone }) => (
