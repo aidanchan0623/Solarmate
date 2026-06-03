@@ -1,12 +1,8 @@
 import {
   ArrowRight,
-  BadgeCheck,
   Building2,
   CircleDollarSign,
-  CloudSun,
-  Gauge,
   KeyRound,
-  Leaf,
   Network,
   ShieldCheck,
   Sparkles,
@@ -16,7 +12,6 @@ import {
 import logoUrl from '../../components/logo.svg';
 import { useState } from 'react';
 import { loginUser, registerUser } from '../api/client';
-import { calculateRateDiscount } from '../utils/calculations';
 
 const initialRegister = {
   role: 'prosumer',
@@ -31,31 +26,7 @@ const initialRegister = {
 const valueChips = [
   { icon: Network, label: 'Peer-to-peer solar matching', tone: 'teal' },
   { icon: CircleDollarSign, label: 'Higher prosumer value', tone: 'gold' },
-  { icon: Building2, label: 'Lower consumer energy cost', tone: 'blue' },
-  { icon: CloudSun, label: 'Weather-aware grid intelligence', tone: 'green' }
-];
-
-const featureCards = [
-  {
-    icon: SunMedium,
-    title: 'Monetise surplus rooftop solar',
-    copy: 'Turn verified export energy into clearer monthly earnings and cashout-ready value.'
-  },
-  {
-    icon: Leaf,
-    title: 'Receive greener energy credits',
-    copy: 'Consumers access matched community solar while TNB supports any remaining demand.'
-  },
-  {
-    icon: Gauge,
-    title: 'Monitor live energy movement',
-    copy: 'Track exports, consumption, payouts, savings, and network allocation in one portal.'
-  },
-  {
-    icon: ShieldCheck,
-    title: 'Coordinate community-scale balancing',
-    copy: 'Admin tools make supply, demand, weather, and settlement activity easier to explain.'
-  }
+  { icon: Building2, label: 'Lower consumer energy cost', tone: 'blue' }
 ];
 
 const demoAccounts = [
@@ -71,7 +42,6 @@ export default function Login({ onLogin }) {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
-  const rateDiscount = calculateRateDiscount();
 
   function updateLogin(field, value) {
     setLoginForm((current) => ({ ...current, [field]: value }));
@@ -136,22 +106,17 @@ export default function Login({ onLogin }) {
             </div>
             <div>
               <strong className="font-extrabold text-slate-900">SolarMate</strong>
-              <span>Community energy, shared intelligently</span>
+              <span>Smarter Energy, Smarter Connections</span>
             </div>
           </div>
-          <span className="login-status-pill">
-            <BadgeCheck size={14} />
-            Prototype ready
-          </span>
         </div>
 
         <div className="login-copy">
-          <p className="eyebrow">Community solar sharing platform</p>
+          <p className="eyebrow">Peer-to-peer solar sharing platform</p>
           <h1 className="font-extrabold">Peer-to-peer solar sharing, realised.</h1>
           <p>
-            SolarMate connects solar prosumers with local consumers through intelligent energy matching,
-            helping communities unlock better value from renewable energy while improving visibility,
-            savings, and grid support.
+            SolarMate connects solar prosumers and local consumers through intelligent energy matching,
+            making renewable energy easier to share, track, and benefit from.
           </p>
           <div className="landing-chip-grid">
             {valueChips.map(({ icon: Icon, label, tone }) => (
@@ -182,38 +147,6 @@ export default function Login({ onLogin }) {
             <span>Uses greener credit</span>
           </div>
         </div>
-
-        <div className="login-feature-grid">
-          {featureCards.map(({ icon: Icon, title, copy }) => (
-            <article className="login-feature-card" key={title}>
-              <span>
-                <Icon size={18} />
-              </span>
-              <div>
-                <strong>{title}</strong>
-                <p>{copy}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-
-        <div className="login-mini-metrics">
-          <div>
-            <span>Prosumer uplift</span>
-            <strong>22.1%</strong>
-            <small>higher than Solar ATAP for quota-matched energy</small>
-          </div>
-          <div>
-            <span>Consumer rate discount</span>
-            <strong>{rateDiscount.rateDiscountPercentage.toFixed(1)}%</strong>
-            <small>lower than the TNB ToU Peak reference rate</small>
-          </div>
-          <div>
-            <span>Built for</span>
-            <strong>3 roles</strong>
-            <small>prosumers, consumers, and admin monitoring</small>
-          </div>
-        </div>
       </section>
 
       <section className="auth-panel">
@@ -223,8 +156,8 @@ export default function Login({ onLogin }) {
             <h2>{mode === 'login' ? 'Access your portal' : 'Create your member account'}</h2>
             <p>
               {mode === 'login'
-                ? 'Sign in to monitor, manage, and benefit from community solar sharing.'
-                : 'Register as a prosumer or consumer, then complete your first setup inside the portal.'}
+                ? 'Sign in to manage exports, consumption, billing, and wallet activity.'
+                : 'Register as a prosumer or consumer, then complete your first setup.'}
             </p>
           </div>
           <span>
@@ -367,7 +300,7 @@ export default function Login({ onLogin }) {
         <div className="auth-demo-box">
           <div>
             <Sparkles size={16} />
-            <strong>Demo access available</strong>
+            <strong>Demo Access</strong>
           </div>
           <div className="demo-access-grid">
             {demoAccounts.map((account) => (
