@@ -8,6 +8,7 @@ import models
 import platform_summary
 from schema_migrations import ensure_sqlite_schema
 import simulation
+import weather_energy
 
 PROSUMER_PLAN_BY_COMMITMENT = {
     100: "Starter Export",
@@ -137,6 +138,30 @@ def generate_daily_values_for_month(year: int, month: int, target_total: float) 
     return [round(value / 100, 2) for value in cents]
 
 
+def generate_weather_weighted_values_for_month(year: int, month: int, target_total: float, namespace: str) -> list[float]:
+    dates = energy.month_dates(year, month)
+    target_cents = int(round(target_total * 100))
+    if not dates or target_cents <= 0:
+        return [0 for _ in dates]
+
+    weights = [weather_energy.daily_weather_weight(date_string, namespace) for date_string in dates]
+    weight_total = sum(weights) or 1
+    cents = [max(int(round(target_cents * weight / weight_total)), 0) for weight in weights]
+    diff = target_cents - sum(cents)
+    index = len(cents) - 1
+    while diff != 0:
+        if diff > 0:
+            cents[index] += 1
+            diff -= 1
+        else:
+            if cents[index] > 0:
+                cents[index] -= 1
+                diff += 1
+        index = (index - 1) % len(cents)
+
+    return [round(value / 100, 2) for value in cents]
+
+
 def month_year(index: int) -> tuple[int, int]:
     return SIMULATION_MONTHS[index]
 
@@ -148,10 +173,16 @@ def add_prosumer_daily_exports(db, user_id, commitment, target_exports=None):
     ]
     for index, target_exported in enumerate(targets):
         year, month = month_year(index)
-        daily_exports = generate_daily_values_for_month(year, month, target_exported)
+        daily_exports = generate_weather_weighted_values_for_month(
+            year,
+            month,
+            target_exported,
+            f"seed-prosumer:{user_id}",
+        )
         for date_string, exported in zip(energy.month_dates(year, month), daily_exports):
-            local_consumption = round(max(2.0, exported * random.uniform(0.45, 0.75)), 2)
-            generated = round(exported + local_consumption, 2)
+            local_ratio = random.uniform(0.35, 0.55)
+            generated = round(exported / max(1 - local_ratio, 0.45), 2)
+            local_consumption = round(max(generated - exported, 0), 2)
             db.add(
                 models.ProsumerDailyExport(
                     user_id=user_id,
@@ -189,7 +220,54 @@ def allocate_daily_green_credit(usage_values: list[float], monthly_credit_target
             step = min(removable, abs(diff_cents))
             credit_cents[index] -= step
             diff_cents += step
-        index = (index - 1) % len(credits)
+        index = (index - 1) % len(credit_cents)
+    return [round(value / 100, 2) for value in credit_cents]
+
+
+def allocate_weather_green_credit(
+    dates: list[str],
+    usage_values: list[float],
+    monthly_credit_target: float,
+    namespace: str,
+) -> list[float]:
+    if not usage_values:
+        return []
+    usage_cents = [int(round(value * 100)) for value in usage_values]
+    usage_total_cents = sum(usage_cents)
+    target = int(round(min(monthly_credit_target, usage_total_cents / 100) * 100))
+    if usage_total_cents <= 0 or target <= 0:
+        return [0 for _ in usage_values]
+
+    preferred = []
+    for date_string, usage in zip(dates, usage_cents):
+        factor = weather_energy.daily_weather_factor(date_string)
+        jitter = weather_energy.stable_unit(f"seed-green-credit:{namespace}:{date_string}") * 0.04
+        ratio = min(max(0.76 + factor * 0.20 + jitter, 0.72), 0.98)
+        preferred.append(min(int(round(usage * ratio)), usage))
+
+    preferred_total = sum(preferred)
+    if preferred_total <= 0:
+        return allocate_daily_green_credit(usage_values, monthly_credit_target)
+    if preferred_total >= target:
+        credit_cents = [int(round(target * value / preferred_total)) for value in preferred]
+        credit_cents = [min(credit, usage) for credit, usage in zip(credit_cents, usage_cents)]
+    else:
+        credit_cents = preferred[:]
+
+    diff_cents = target - sum(credit_cents)
+    index = len(credit_cents) - 1
+    while diff_cents != 0:
+        if diff_cents > 0:
+            available = max(usage_cents[index] - credit_cents[index], 0)
+            step = min(available, diff_cents)
+            credit_cents[index] += step
+            diff_cents -= step
+        else:
+            removable = credit_cents[index]
+            step = min(removable, abs(diff_cents))
+            credit_cents[index] -= step
+            diff_cents += step
+        index = (index - 1) % len(credit_cents)
     return [round(value / 100, 2) for value in credit_cents]
 
 
@@ -206,8 +284,14 @@ def add_consumer_daily_usage(db, user_id, allocation, target_usage_values=None, 
             if target_credit_values
             else round(min(allocation, target_usage * random.uniform(0.84, 0.94)), 2)
         )
-        green_values = allocate_daily_green_credit(usage_values, target_credit)
-        for date_string, usage, green_credit in zip(energy.month_dates(year, month), usage_values, green_values):
+        dates = energy.month_dates(year, month)
+        green_values = allocate_weather_green_credit(
+            dates,
+            usage_values,
+            target_credit,
+            f"seed-consumer:{user_id}",
+        )
+        for date_string, usage, green_credit in zip(dates, usage_values, green_values):
             tnb_import = round(max(usage - green_credit, 0), 2)
             db.add(
                 models.ConsumerDailyUsage(

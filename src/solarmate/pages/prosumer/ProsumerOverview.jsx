@@ -26,6 +26,26 @@ function ProgressLine({ label, value, percent, tone = 'teal' }) {
   );
 }
 
+function malaysiaDate(value) {
+  const source = value ? new Date(`${value}T00:00:00+08:00`) : new Date();
+  return new Intl.DateTimeFormat('en-MY', {
+    timeZone: 'Asia/Kuala_Lumpur',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  }).format(source);
+}
+
+function malaysiaTime(value) {
+  return new Intl.DateTimeFormat('en-MY', {
+    timeZone: 'Asia/Kuala_Lumpur',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZoneName: 'short'
+  }).format(value ? new Date(value) : new Date());
+}
+
 function ImpactRow({ icon: Icon, label, value, detail, tone = 'teal' }) {
   const tones = {
     amber: {
@@ -145,11 +165,11 @@ export default function ProsumerOverview({ prosumer }) {
                     <div className="flex items-center justify-between">
                       <div className="flex flex-col">
                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Today</span>
-                        <strong className="text-sm text-slate-950">{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</strong>
+                        <strong className="text-sm text-slate-950">{malaysiaDate(data.today_key)}</strong>
                       </div>
                       <div className="flex flex-col text-right">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cycle Ends</span>
-                        <strong className="text-sm text-slate-950">{new Date(new Date().getFullYear(), new Date().getMonth(), data.days_in_month).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</strong>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Last Updated</span>
+                        <strong className="text-sm text-slate-950">{malaysiaTime(data.last_updated_at)}</strong>
                       </div>
                     </div>
                     
@@ -160,7 +180,7 @@ export default function ProsumerOverview({ prosumer }) {
                       />
                       <div className="absolute inset-0 flex items-center justify-center">
                         <span className="text-xs font-extrabold text-amber-950 tracking-wide drop-shadow-md">
-                          {data.days_in_month - data.current_day_of_month} days left
+                          Day {data.current_day_of_month} / {data.days_in_month} | {data.month_progress_percentage.toFixed(1)}% elapsed
                         </span>
                       </div>
                     </div>

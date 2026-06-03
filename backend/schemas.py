@@ -98,6 +98,8 @@ class ProsumerOverviewResponse(BaseModel):
     days_in_month: int
     month_progress_percentage: float
     quota_progress_percentage: float
+    today_key: str
+    last_updated_at: str
 
 
 class ProsumerMonthlyExportResponse(BaseModel):
@@ -233,6 +235,8 @@ class ConsumerOverviewResponse(BaseModel):
     days_in_month: int
     month_progress_percentage: float
     usage_progress_percentage: float
+    today_key: str
+    last_updated_at: str
 
 
 class ConsumerBillingResponse(BaseModel):

@@ -239,6 +239,8 @@ def get_overview(
             days_in_month=energy.days_in_month(),
             month_progress_percentage=energy.current_month_progress_percentage(),
             usage_progress_percentage=0,
+            today_key=energy.today_key(),
+            last_updated_at=energy.malaysia_now().isoformat(),
             **bill,
         )
     usage_progress = (
@@ -263,6 +265,8 @@ def get_overview(
         days_in_month=energy.days_in_month(),
         month_progress_percentage=energy.current_month_progress_percentage(),
         usage_progress_percentage=round(usage_progress, 2),
+        today_key=energy.today_key(),
+        last_updated_at=energy.malaysia_now().isoformat(),
     )
 
 

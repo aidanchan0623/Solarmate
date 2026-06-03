@@ -1,12 +1,25 @@
 import { useId, useRef, useState } from 'react';
 
 const palette = {
-  teal: '#27a1ad',
-  gold: '#f2c94c',
+  teal: '#14a7a0',
+  gold: '#f4b942',
   green: '#1c9a65',
   grey: '#8da0a8',
-  blueGrey: '#6f8790',
-  mutedBlue: '#6e93ad'
+  blueGrey: '#647989',
+  mutedBlue: '#6e93ad',
+  amber: '#f59e0b',
+  orange: '#ea7a1a'
+};
+
+const gradientEnd = {
+  teal: '#0f766e',
+  gold: '#f59e0b',
+  green: '#047857',
+  grey: '#64748b',
+  blueGrey: '#475569',
+  mutedBlue: '#40667d',
+  amber: '#d97706',
+  orange: '#c2410c'
 };
 
 export default function CompactGroupedBarChart({
@@ -33,7 +46,7 @@ export default function CompactGroupedBarChart({
   const [tooltip, setTooltip] = useState(null);
   const chartData = Array.isArray(data) ? data : [];
   const width = 760;
-  const padding = { top: 18, right: 8, bottom: 42, left: 28 };
+  const padding = { top: 18, right: 10, bottom: 42, left: 30 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
   const values = stacked
@@ -41,21 +54,21 @@ export default function CompactGroupedBarChart({
     : chartData.flatMap((item) => series.map((entry) => Number(item[entry.key]) || 0));
   const maxValue = Math.max(...values, 1);
   const groupWidth = chartData.length ? chartWidth / chartData.length : chartWidth;
-  const barGap = 3;
+  const barGap = 7;
   const preferredBarSize = Number(barSize) || 0;
   const cappedBarSize = Number(maxBarSize) || 48;
   const barWidth = stacked
     ? Math.min(
         cappedBarSize,
-        preferredBarSize
-          ? Math.min(preferredBarSize, Math.max(groupWidth - 34, 16))
-          : Math.max(groupWidth - 12, 16)
+          preferredBarSize
+          ? Math.min(preferredBarSize, Math.max(groupWidth - 42, 16))
+          : Math.max(groupWidth - 22, 16)
       )
     : Math.min(
         cappedBarSize,
         preferredBarSize
-          ? Math.min(preferredBarSize, Math.max((groupWidth - 6 - barGap * (series.length - 1)) / series.length, 6))
-          : Math.max((groupWidth - 6 - barGap * (series.length - 1)) / series.length, 6)
+          ? Math.min(preferredBarSize, Math.max((groupWidth - 18 - barGap * (series.length - 1)) / series.length, 6))
+          : Math.max((groupWidth - 18 - barGap * (series.length - 1)) / series.length, 6)
       );
 
   function y(value) {
@@ -131,7 +144,7 @@ export default function CompactGroupedBarChart({
                   <linearGradient id={gradientIdFor(entry.key)} key={entry.key} x1="0" x2="0" y1="0" y2="1">
                     <stop offset="0%" stopColor={color} stopOpacity="1" />
                     <stop offset="58%" stopColor={color} stopOpacity="0.88" />
-                    <stop offset="100%" stopColor="#0f766e" stopOpacity="0.72" />
+                    <stop offset="100%" stopColor={gradientEnd[entry.color] || color} stopOpacity="0.72" />
                   </linearGradient>
                 );
               })}

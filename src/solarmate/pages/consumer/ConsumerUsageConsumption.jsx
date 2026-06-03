@@ -204,11 +204,11 @@ export default function ConsumerUsageConsumption({ consumer }) {
                 value={`${kwh(weeklySummary.green)} kWh`}
               />
               <KpiCard
-                accent="from-sky-400 to-cyan-400"
+                accent="from-amber-400 to-orange-500"
                 icon={Zap}
-                iconClass="bg-sky-100/80 text-sky-700"
+                iconClass="bg-amber-100/80 text-amber-700"
                 label="TNB Import"
-                tint="from-sky-50 via-blue-50/50 to-cyan-50/80"
+                tint="from-amber-50 via-orange-50/50 to-slate-50/80"
                 value={`${kwh(weeklySummary.tnb)} kWh`}
               />
             </div>
@@ -222,7 +222,7 @@ export default function ConsumerUsageConsumption({ consumer }) {
               height={300}
               series={[
                 { key: 'greenCredit', label: 'Green credit used', color: 'teal' },
-                { key: 'tnbImport', label: 'TNB import', color: 'blueGrey' }
+                { key: 'tnbImport', label: 'TNB import', color: 'orange' }
               ]}
               tooltipExtra={(item) => [
                 { label: 'Total usage', value: `${kwh(item.totalUsage)} kWh`, color: 'gold' }
@@ -264,11 +264,11 @@ export default function ConsumerUsageConsumption({ consumer }) {
                 value={`${kwh(currentMonth?.green_credit_kwh)} kWh`}
               />
               <KpiCard
-                accent="from-sky-400 to-cyan-400"
+                accent="from-amber-400 to-orange-500"
                 icon={Zap}
-                iconClass="bg-sky-100/80 text-sky-700"
+                iconClass="bg-amber-100/80 text-amber-700"
                 label="TNB Import"
-                tint="from-sky-50 via-blue-50/50 to-cyan-50/80"
+                tint="from-amber-50 via-orange-50/50 to-slate-50/80"
                 value={`${kwh(currentMonth?.tnb_import_kwh)} kWh`}
               />
             </div>
@@ -282,7 +282,7 @@ export default function ConsumerUsageConsumption({ consumer }) {
               height={300}
               series={[
                 { key: 'greenCredit', label: 'Green credit', color: 'teal' },
-                { key: 'tnbImport', label: 'TNB import', color: 'blueGrey' }
+                { key: 'tnbImport', label: 'TNB import', color: 'orange' }
               ]}
               stacked
               tooltipExtra={(item) => [

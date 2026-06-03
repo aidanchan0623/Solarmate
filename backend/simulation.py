@@ -3,6 +3,7 @@ import random
 
 import energy
 import models
+import weather_energy
 
 PROSUMER_PLAN_BY_COMMITMENT = {
     100: "Starter Export",
@@ -76,6 +77,34 @@ def generate_daily_values_for_month(year: int, month: int, target_total: float, 
     return [round(value / 100, 2) for value in cents]
 
 
+def generate_weather_weighted_values_for_month(
+    year: int,
+    month: int,
+    target_total: float,
+    namespace: str,
+) -> list[float]:
+    dates = energy.month_dates(year, month)
+    target_cents = int(round(float(target_total or 0) * 100))
+    if not dates or target_cents <= 0:
+        return [0 for _ in dates]
+
+    weights = [weather_energy.daily_weather_weight(date_string, namespace) for date_string in dates]
+    weight_total = sum(weights) or 1
+    cents = [max(int(round(target_cents * weight / weight_total)), 0) for weight in weights]
+    diff = target_cents - sum(cents)
+    index = len(cents) - 1
+    while diff != 0:
+        if diff > 0:
+            cents[index] += 1
+            diff -= 1
+        elif cents[index] > 0:
+            cents[index] -= 1
+            diff += 1
+        index = (index - 1) % len(cents)
+
+    return [round(value / 100, 2) for value in cents]
+
+
 def allocate_daily_green_credit(usage_values: list[float], monthly_green_credit_kwh: float) -> list[float]:
     if not usage_values:
         return []
@@ -88,6 +117,56 @@ def allocate_daily_green_credit(usage_values: list[float], monthly_green_credit_
 
     ratio = target_cents / total_usage_cents
     credit_cents = [min(int(round(value * ratio)), value) for value in usage_cents]
+    diff = target_cents - sum(credit_cents)
+    index = len(credit_cents) - 1
+    while diff != 0:
+        if diff > 0:
+            available = max(usage_cents[index] - credit_cents[index], 0)
+            step = min(available, diff)
+            credit_cents[index] += step
+            diff -= step
+        else:
+            removable = credit_cents[index]
+            step = min(removable, abs(diff))
+            credit_cents[index] -= step
+            diff += step
+        index = (index - 1) % len(credit_cents)
+
+    return [round(value / 100, 2) for value in credit_cents]
+
+
+def allocate_weather_green_credit(
+    dates: list[str],
+    usage_values: list[float],
+    monthly_green_credit_kwh: float,
+    namespace: str,
+) -> list[float]:
+    if not usage_values:
+        return []
+
+    usage_cents = [int(round(value * 100)) for value in usage_values]
+    total_usage_cents = sum(usage_cents)
+    target_cents = int(round(min(monthly_green_credit_kwh, total_usage_cents / 100) * 100))
+    if total_usage_cents <= 0 or target_cents <= 0:
+        return [0 for _ in usage_values]
+
+    preferred = []
+    for date_string, usage in zip(dates, usage_cents):
+        factor = weather_energy.daily_weather_factor(date_string)
+        jitter = weather_energy.stable_unit(f"green-credit:{namespace}:{date_string}") * 0.04
+        daily_ratio = min(max(0.76 + factor * 0.20 + jitter, 0.72), 0.98)
+        preferred.append(min(int(round(usage * daily_ratio)), usage))
+
+    preferred_total = sum(preferred)
+    if preferred_total <= 0:
+        return allocate_daily_green_credit(usage_values, monthly_green_credit_kwh)
+
+    if preferred_total >= target_cents:
+        credit_cents = [int(round(target_cents * value / preferred_total)) for value in preferred]
+        credit_cents = [min(credit, usage) for credit, usage in zip(credit_cents, usage_cents)]
+    else:
+        credit_cents = preferred[:]
+
     diff = target_cents - sum(credit_cents)
     index = len(credit_cents) - 1
     while diff != 0:
@@ -168,10 +247,16 @@ def clear_user_energy_records(db, user: models.User) -> None:
 def create_prosumer_daily_exports(db, user: models.User) -> None:
     rng = seeded_rng(user, "prosumer-daily")
     for (year, month), target_exported in zip(simulation_months(), prosumer_export_targets(user)):
-        daily_exports = generate_daily_values_for_month(year, month, target_exported, rng)
+        daily_exports = generate_weather_weighted_values_for_month(
+            year,
+            month,
+            target_exported,
+            f"prosumer:{user.id}:{user.username}",
+        )
         for date_string, exported in zip(energy.month_dates(year, month), daily_exports):
-            local_consumption = round(max(2.0, exported * rng.uniform(0.45, 0.75)), 2)
-            generated = round(exported + local_consumption, 2)
+            local_ratio = 0.35 + rng.uniform(0, 0.20)
+            generated = round(exported / max(1 - local_ratio, 0.45), 2)
+            local_consumption = round(max(generated - exported, 0), 2)
             db.add(
                 models.ProsumerDailyExport(
                     user_id=user.id,
@@ -188,8 +273,14 @@ def create_consumer_daily_usage(db, user: models.User) -> None:
     usage_targets, credit_targets = consumer_usage_targets(user)
     for (year, month), target_usage, target_credit in zip(simulation_months(), usage_targets, credit_targets):
         usage_values = generate_daily_values_for_month(year, month, target_usage, rng)
-        green_values = allocate_daily_green_credit(usage_values, target_credit)
-        for date_string, usage, green_credit in zip(energy.month_dates(year, month), usage_values, green_values):
+        dates = energy.month_dates(year, month)
+        green_values = allocate_weather_green_credit(
+            dates,
+            usage_values,
+            target_credit,
+            f"consumer:{user.id}:{user.username}",
+        )
+        for date_string, usage, green_credit in zip(dates, usage_values, green_values):
             db.add(
                 models.ConsumerDailyUsage(
                     user_id=user.id,
@@ -215,6 +306,8 @@ def ensure_prosumer_records(user: models.User, db, force: bool = False) -> bool:
         )
         .all()
     }
+    if is_demo_like_user(user):
+        force = True
     if needed_dates.issubset(existing_dates) and not force:
         db.commit()
         db.refresh(user)
@@ -241,6 +334,8 @@ def ensure_consumer_records(user: models.User, db, force: bool = False) -> bool:
         )
         .all()
     }
+    if is_demo_like_user(user):
+        force = True
     if needed_dates.issubset(existing_dates) and not force:
         db.commit()
         db.refresh(user)

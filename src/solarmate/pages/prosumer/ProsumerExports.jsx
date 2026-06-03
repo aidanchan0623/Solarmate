@@ -443,6 +443,7 @@ export default function ProsumerExports({ prosumer, user }) {
 
           <DashboardCard eyebrow="Weekly chart" title="Generated, Consumed, and Exported by Day">
             <CompactGroupedBarChart
+              barSize={24}
               className="rounded-[2rem] border border-amber-100/40 bg-gradient-to-br from-amber-50/60 via-emerald-50/30 to-teal-50/40 p-6 backdrop-blur-sm mt-4"
               data={weeklyChartData}
               emptyMessage={hasEspDevice ? 'No ESP packets received in this browser session. Send a reading to add the first bar.' : 'No weekly export data yet.'}
@@ -457,6 +458,7 @@ export default function ProsumerExports({ prosumer, user }) {
               ]}
               tooltipTitle={(item) => item.fullDate}
               valueSuffix=" kWh"
+              useGradientBars
               xKey="date"
             />
           </DashboardCard>
@@ -505,6 +507,7 @@ export default function ProsumerExports({ prosumer, user }) {
 
           <DashboardCard eyebrow="Monthly chart" title="Monthly Energy Sold by Channel">
             <CompactGroupedBarChart
+              barSize={34}
               className="rounded-[2rem] border border-amber-100/40 bg-gradient-to-br from-amber-50/60 via-emerald-50/30 to-teal-50/40 p-6 backdrop-blur-sm mt-4"
               data={monthlyChartData}
               emptyMessage={hasEspDevice ? 'No session export yet. Send ESP readings to build the monthly split.' : 'No monthly export data yet.'}
@@ -519,6 +522,7 @@ export default function ProsumerExports({ prosumer, user }) {
               ]}
               tooltipTitle={(item) => item.fullMonth}
               valueSuffix=" kWh"
+              useGradientBars
               xKey="month"
             />
             {!hasEspDevice && <DataTable columns={monthlyColumns} rows={monthlyRows} />}

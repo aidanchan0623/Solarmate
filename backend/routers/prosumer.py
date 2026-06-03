@@ -222,6 +222,8 @@ def get_overview(
             days_in_month=energy.days_in_month(),
             month_progress_percentage=energy.current_month_progress_percentage(),
             quota_progress_percentage=0,
+            today_key=energy.today_key(),
+            last_updated_at=energy.malaysia_now().isoformat(),
             **split,
         )
     quota = profile.export_commitment_kwh or 0
@@ -244,6 +246,8 @@ def get_overview(
         days_in_month=energy.days_in_month(),
         month_progress_percentage=energy.current_month_progress_percentage(),
         quota_progress_percentage=round(quota_progress, 2),
+        today_key=energy.today_key(),
+        last_updated_at=energy.malaysia_now().isoformat(),
     )
 
 
