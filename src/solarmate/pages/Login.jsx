@@ -1,4 +1,18 @@
-import { Building2, Leaf, ShieldCheck, Sparkles, SunMedium } from 'lucide-react';
+import {
+  ArrowRight,
+  BadgeCheck,
+  Building2,
+  CircleDollarSign,
+  CloudSun,
+  Gauge,
+  KeyRound,
+  Leaf,
+  Network,
+  ShieldCheck,
+  Sparkles,
+  SunMedium,
+  UserPlus
+} from 'lucide-react';
 import logoUrl from '../../components/logo.svg';
 import { useState } from 'react';
 import { loginUser, registerUser } from '../api/client';
@@ -13,6 +27,42 @@ const initialRegister = {
   business_name: '',
   business_type: ''
 };
+
+const valueChips = [
+  { icon: Network, label: 'Peer-to-peer solar matching', tone: 'teal' },
+  { icon: CircleDollarSign, label: 'Higher prosumer value', tone: 'gold' },
+  { icon: Building2, label: 'Lower consumer energy cost', tone: 'blue' },
+  { icon: CloudSun, label: 'Weather-aware grid intelligence', tone: 'green' }
+];
+
+const featureCards = [
+  {
+    icon: SunMedium,
+    title: 'Monetise surplus rooftop solar',
+    copy: 'Turn verified export energy into clearer monthly earnings and cashout-ready value.'
+  },
+  {
+    icon: Leaf,
+    title: 'Receive greener energy credits',
+    copy: 'Consumers access matched community solar while TNB supports any remaining demand.'
+  },
+  {
+    icon: Gauge,
+    title: 'Monitor live energy movement',
+    copy: 'Track exports, consumption, payouts, savings, and network allocation in one portal.'
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Coordinate community-scale balancing',
+    copy: 'Admin tools make supply, demand, weather, and settlement activity easier to explain.'
+  }
+];
+
+const demoAccounts = [
+  { role: 'Admin', login: 'admin / admin123' },
+  { role: 'Prosumer', login: 'prosumer_demo / password123' },
+  { role: 'Consumer', login: 'consumer_demo / password123' }
+];
 
 export default function Login({ onLogin }) {
   const [mode, setMode] = useState('login');
@@ -79,37 +129,109 @@ export default function Login({ onLogin }) {
   return (
     <main className="login-page auth-login-page">
       <section className="login-hero">
-        <div className="brand-block login-brand">
-          <div className="logo-mark login-logo-mark">
-            <img src={logoUrl} alt="SolarMate Logo" />
+        <div className="login-hero-top">
+          <div className="brand-block login-brand">
+            <div className="logo-mark login-logo-mark">
+              <img src={logoUrl} alt="SolarMate Logo" />
+            </div>
+            <div>
+              <strong className="font-extrabold text-slate-900">SolarMate</strong>
+              <span>Community energy, shared intelligently</span>
+            </div>
           </div>
-          <div>
-            <strong className="font-extrabold text-slate-900">SolarMate</strong>
-            <span>Smarter Energy, Smarter Connections</span>
-          </div>
+          <span className="login-status-pill">
+            <BadgeCheck size={14} />
+            Prototype ready
+          </span>
         </div>
+
         <div className="login-copy">
           <p className="eyebrow">Community solar sharing platform</p>
-          <h1 className="font-extrabold">SolarMate</h1>
+          <h1 className="font-extrabold">Peer-to-peer solar sharing, realised.</h1>
           <p>
-            Sign in or register as a prosumer or low-voltage business consumer. Admin access is seeded
-            locally for prototype management.
+            SolarMate connects solar prosumers with local consumers through intelligent energy matching,
+            helping communities unlock better value from renewable energy while improving visibility,
+            savings, and grid support.
           </p>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 16 }}>
-            <span className="sm-pill"><Leaf size={12} /> Balanced green matching</span>
-            <span className="sm-pill gold"><Sparkles size={12} /> 22.1% prosumer uplift</span>
-            <span className="sm-pill blue">
-              <Building2 size={12} /> {rateDiscount.rateDiscountPercentage.toFixed(1)}% rate discount
-            </span>
+          <div className="landing-chip-grid">
+            {valueChips.map(({ icon: Icon, label, tone }) => (
+              <span className={`landing-chip ${tone}`} key={label}>
+                <Icon size={14} />
+                {label}
+              </span>
+            ))}
           </div>
         </div>
-        <div className="auth-demo-box">
-          <strong>Default admin</strong>
-          <span>admin / admin123</span>
+
+        <div className="solar-flow-card" aria-label="SolarMate energy flow">
+          <div className="flow-node prosumer">
+            <SunMedium size={22} />
+            <strong>Prosumer</strong>
+            <span>Exports surplus solar</span>
+          </div>
+          <ArrowRight className="flow-arrow" size={22} />
+          <div className="flow-node matching">
+            <Network size={22} />
+            <strong>SolarMate</strong>
+            <span>Matches supply and demand</span>
+          </div>
+          <ArrowRight className="flow-arrow" size={22} />
+          <div className="flow-node consumer">
+            <Building2 size={22} />
+            <strong>Consumer</strong>
+            <span>Uses greener credit</span>
+          </div>
+        </div>
+
+        <div className="login-feature-grid">
+          {featureCards.map(({ icon: Icon, title, copy }) => (
+            <article className="login-feature-card" key={title}>
+              <span>
+                <Icon size={18} />
+              </span>
+              <div>
+                <strong>{title}</strong>
+                <p>{copy}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <div className="login-mini-metrics">
+          <div>
+            <span>Prosumer uplift</span>
+            <strong>22.1%</strong>
+            <small>higher than Solar ATAP for quota-matched energy</small>
+          </div>
+          <div>
+            <span>Consumer rate discount</span>
+            <strong>{rateDiscount.rateDiscountPercentage.toFixed(1)}%</strong>
+            <small>lower than the TNB ToU Peak reference rate</small>
+          </div>
+          <div>
+            <span>Built for</span>
+            <strong>3 roles</strong>
+            <small>prosumers, consumers, and admin monitoring</small>
+          </div>
         </div>
       </section>
 
       <section className="auth-panel">
+        <div className="auth-panel-header">
+          <div>
+            <p className="eyebrow">SolarMate member access</p>
+            <h2>{mode === 'login' ? 'Access your portal' : 'Create your member account'}</h2>
+            <p>
+              {mode === 'login'
+                ? 'Sign in to monitor, manage, and benefit from community solar sharing.'
+                : 'Register as a prosumer or consumer, then complete your first setup inside the portal.'}
+            </p>
+          </div>
+          <span>
+            {mode === 'login' ? <KeyRound size={20} /> : <UserPlus size={20} />}
+          </span>
+        </div>
+
         <div className="auth-tabs">
           <button className={mode === 'login' ? 'active' : ''} onClick={() => setMode('login')} type="button">
             Login
@@ -124,14 +246,22 @@ export default function Login({ onLogin }) {
             <div>
               <p className="eyebrow">Member login</p>
               <h2>Access your SolarMate portal</h2>
+              <p className="auth-helper-text">Login as a prosumer, consumer, or admin.</p>
             </div>
             <label>
               Username
-              <input value={loginForm.username} onChange={(event) => updateLogin('username', event.target.value)} />
+              <input
+                autoComplete="username"
+                placeholder="e.g. prosumer_demo"
+                value={loginForm.username}
+                onChange={(event) => updateLogin('username', event.target.value)}
+              />
             </label>
             <label>
               Password
               <input
+                autoComplete="current-password"
+                placeholder="Enter your password"
                 type="password"
                 value={loginForm.password}
                 onChange={(event) => updateLogin('password', event.target.value)}
@@ -147,6 +277,7 @@ export default function Login({ onLogin }) {
             <div>
               <p className="eyebrow">New member</p>
               <h2>Create a SolarMate account</h2>
+              <p className="auth-helper-text">Choose your role first. Plan setup happens after first login.</p>
             </div>
             <div className="auth-role-toggle">
               <button
@@ -168,15 +299,28 @@ export default function Login({ onLogin }) {
             </div>
             <label>
               Username
-              <input value={registerForm.username} onChange={(event) => updateRegister('username', event.target.value)} />
+              <input
+                autoComplete="username"
+                placeholder="Choose a username"
+                value={registerForm.username}
+                onChange={(event) => updateRegister('username', event.target.value)}
+              />
             </label>
             <label>
               Email
-              <input type="email" value={registerForm.email} onChange={(event) => updateRegister('email', event.target.value)} />
+              <input
+                autoComplete="email"
+                placeholder="you@example.com"
+                type="email"
+                value={registerForm.email}
+                onChange={(event) => updateRegister('email', event.target.value)}
+              />
             </label>
             <label>
               Password
               <input
+                autoComplete="new-password"
+                placeholder="Create a password"
                 type="password"
                 value={registerForm.password}
                 onChange={(event) => updateRegister('password', event.target.value)}
@@ -186,6 +330,7 @@ export default function Login({ onLogin }) {
               <label>
                 Display name
                 <input
+                  placeholder="e.g. Aidan Rooftop Solar"
                   value={registerForm.display_name}
                   onChange={(event) => updateRegister('display_name', event.target.value)}
                 />
@@ -195,6 +340,7 @@ export default function Login({ onLogin }) {
                 <label>
                   Business name
                   <input
+                    placeholder="e.g. Green Bean Cafe"
                     value={registerForm.business_name}
                     onChange={(event) => updateRegister('business_name', event.target.value)}
                   />
@@ -202,6 +348,7 @@ export default function Login({ onLogin }) {
                 <label>
                   Business type
                   <input
+                    placeholder="e.g. Cafe, office, retail"
                     value={registerForm.business_type}
                     onChange={(event) => updateRegister('business_type', event.target.value)}
                   />
@@ -216,6 +363,21 @@ export default function Login({ onLogin }) {
 
         {notice && <div className="success-message">{notice}</div>}
         {error && <div className="auth-error">{error}</div>}
+
+        <div className="auth-demo-box">
+          <div>
+            <Sparkles size={16} />
+            <strong>Demo access available</strong>
+          </div>
+          <div className="demo-access-grid">
+            {demoAccounts.map((account) => (
+              <span key={account.role}>
+                <small>{account.role}</small>
+                {account.login}
+              </span>
+            ))}
+          </div>
+        </div>
       </section>
     </main>
   );
