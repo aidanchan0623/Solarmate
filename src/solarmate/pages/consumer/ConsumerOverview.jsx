@@ -7,32 +7,32 @@ import StatusBadge from '../../components/StatusBadge';
 function ImpactRow({ icon: Icon, label, value, detail, tone = 'teal' }) {
   const tones = {
     amber: {
-      row: 'from-amber-50/80 to-white hover:border-amber-200/80',
-      icon: 'bg-amber-100 text-amber-600 shadow-[0_12px_28px_-18px_rgba(245,158,11,0.8)]'
+      row: 'from-white via-amber-50/40 to-amber-100/60 hover:border-amber-300',
+      icon: 'bg-amber-100/90 text-amber-600 shadow-sm'
     },
-    blue: {
-      row: 'from-sky-50/80 to-white hover:border-sky-200/80',
-      icon: 'bg-sky-100 text-sky-600 shadow-[0_12px_28px_-18px_rgba(14,165,233,0.8)]'
+    teal: {
+      row: 'from-white via-teal-50/40 to-teal-100/60 hover:border-teal-300',
+      icon: 'bg-teal-100/90 text-teal-600 shadow-sm'
     },
     emerald: {
-      row: 'from-emerald-50/80 to-white hover:border-emerald-200/80',
-      icon: 'bg-emerald-100 text-emerald-600 shadow-[0_12px_28px_-18px_rgba(16,185,129,0.8)]'
+      row: 'from-white via-emerald-50/40 to-emerald-100/60 hover:border-emerald-300',
+      icon: 'bg-emerald-100/90 text-emerald-600 shadow-sm'
     }
   };
   const theme = tones[tone] || tones.emerald;
 
   return (
-    <div className={`group rounded-2xl border border-slate-100 bg-gradient-to-br p-3 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_42px_-34px_rgba(15,23,42,0.65)] ${theme.row}`}>
+    <div className={`group rounded-2xl border-2 border-white bg-gradient-to-br p-3.5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl backdrop-blur-md ${theme.row}`}>
       <div className="flex min-w-0 items-center gap-3">
-        <span className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-105 ${theme.icon}`}>
-          <Icon size={16} />
+        <span className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 ${theme.icon}`}>
+          <Icon size={20} strokeWidth={2.5} />
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
-            <span className="block text-sm font-bold text-slate-700">{label}</span>
-            <strong className="shrink-0 text-right text-lg font-bold text-slate-950 tabular-nums">{value}</strong>
+            <span className="block text-sm font-extrabold text-slate-800">{label}</span>
+            <strong className="shrink-0 text-right text-lg font-black text-slate-900 tabular-nums">{value}</strong>
           </div>
-          <span className="mt-0.5 block max-w-[15rem] text-xs leading-snug text-slate-500">{detail}</span>
+          <span className="mt-0.5 block max-w-[15rem] text-xs font-semibold leading-snug text-slate-600">{detail}</span>
         </div>
       </div>
     </div>
@@ -41,18 +41,18 @@ function ImpactRow({ icon: Icon, label, value, detail, tone = 'teal' }) {
 
 function ProgressLine({ label, value, percent, tone = 'teal' }) {
   const barClass = tone === 'amber'
-    ? 'bg-gradient-to-r from-amber-400 to-yellow-300'
-    : 'bg-gradient-to-r from-teal-500 via-emerald-400 to-lime-300';
+    ? 'bg-gradient-to-r from-amber-400 via-orange-400 to-yellow-400'
+    : 'bg-gradient-to-r from-teal-500 via-emerald-400 to-cyan-400';
 
   return (
     <div className="min-w-0">
       <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
-        <span className="text-sm font-semibold text-slate-600">{label}</span>
-        {value && <strong className="text-sm font-bold text-slate-900 tabular-nums">{value}</strong>}
+        <span className="text-sm font-bold text-slate-700">{label}</span>
+        {value && <strong className="text-sm font-black text-slate-900 tabular-nums">{value}</strong>}
       </div>
-      <div className="h-3 overflow-hidden rounded-full bg-slate-100 shadow-inner">
+      <div className="h-4 overflow-hidden rounded-full bg-white/60 shadow-inner backdrop-blur-sm border border-white/50">
         <span
-          className={`block h-full rounded-full shadow-[0_0_18px_rgba(20,184,166,0.28)] ${barClass}`}
+          className={`block h-full rounded-full shadow-[0_0_12px_rgba(20,184,166,0.6)] ${barClass}`}
           style={{ width: `${Math.min(percent, 100)}%` }}
         />
       </div>
@@ -111,20 +111,20 @@ export default function ConsumerOverview({ consumer }) {
       {overview && (
         <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-12">
           <div className="flex lg:col-span-8">
-            <div className="relative flex w-full flex-col overflow-hidden rounded-3xl border border-teal-100 bg-gradient-to-br from-white via-teal-50/45 to-emerald-50/60 p-6 shadow-[0_28px_70px_-55px_rgba(13,148,136,0.75)]">
-              <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-emerald-200/50 blur-3xl" />
-              <div className="pointer-events-none absolute -bottom-20 left-16 h-44 w-44 rounded-full bg-cyan-100/70 blur-3xl" />
+            <div className="relative flex w-full flex-col overflow-hidden rounded-3xl border border-teal-100 bg-gradient-to-br from-teal-50 via-cyan-50/70 to-emerald-100/80 p-6 shadow-sm">
+              <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-teal-200/50 blur-3xl mix-blend-multiply" />
+              <div className="pointer-events-none absolute -bottom-20 left-16 h-64 w-64 rounded-full bg-cyan-200/40 blur-3xl mix-blend-multiply" />
 
               <div className="relative">
-                <span className="block text-xs font-bold uppercase tracking-wider text-teal-700">Green credit used this month</span>
+                <span className="block text-xs font-black uppercase tracking-widest text-teal-800">Green credit used this month</span>
                 <div className="mt-3 flex flex-wrap items-end gap-x-3 gap-y-1">
-                  <strong className="text-4xl font-bold tracking-tight text-slate-950 tabular-nums">
+                  <strong className="text-5xl font-black tracking-tight text-teal-950 tabular-nums drop-shadow-sm">
                     {greenCredit.toLocaleString()}
                   </strong>
-                  <span className="pb-1 text-lg font-bold text-slate-500 tabular-nums">/ {allocation.toLocaleString()} kWh</span>
+                  <span className="pb-1 text-xl font-bold text-teal-800 tabular-nums drop-shadow-sm">/ {allocation.toLocaleString()} kWh</span>
                 </div>
 
-                <div className="mt-6">
+                <div className="mt-8 rounded-2xl bg-white/30 p-4 backdrop-blur-md border border-white/50 shadow-sm">
                   <ProgressLine
                     label="Credit pace"
                     percent={creditProgress}
@@ -132,42 +132,47 @@ export default function ConsumerOverview({ consumer }) {
                   />
                 </div>
 
-                <div className="mt-6 rounded-2xl border border-white/80 bg-white/75 p-4 shadow-sm">
-                  <div className="mb-3 grid gap-3 md:grid-cols-[0.85fr_1.15fr] md:items-end">
-                    <div>
-                      <span className="block text-xs font-bold uppercase tracking-wider text-slate-500">Billing cycle</span>
-                      <strong className="mt-1 block text-xl font-bold text-slate-950 tabular-nums">
-                        Day {overview.current_day_of_month} of {overview.days_in_month}
-                      </strong>
+                <div className="mt-5 flex flex-col gap-4 rounded-2xl border border-white/50 bg-white/40 p-4 shadow-sm backdrop-blur-md">
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Today</span>
+                      <strong className="text-sm text-slate-950">{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</strong>
                     </div>
-                    <div className="rounded-xl border border-amber-200/80 bg-gradient-to-br from-amber-100 via-yellow-50 to-white px-4 py-2.5 shadow-[0_14px_34px_-30px_rgba(245,158,11,0.9)]">
-                      <span className="block text-xs font-bold uppercase tracking-wider text-amber-800">Calendar elapsed</span>
-                      <strong className="mt-0.5 block text-lg font-bold text-amber-900 tabular-nums">
-                        {overview.month_progress_percentage.toFixed(1)}%
-                      </strong>
+
+                    <div className="flex flex-col text-right">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cycle Ends</span>
+                      <strong className="text-sm text-slate-950">{new Date(new Date().getFullYear(), new Date().getMonth(), overview.days_in_month).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</strong>
                     </div>
                   </div>
-                  <ProgressLine
-                    label="Month progress"
-                    percent={overview.month_progress_percentage}
-                    tone="amber"
-                    value=""
-                  />
+                  
+                  <div className="relative h-6 w-full overflow-hidden rounded-full bg-teal-50 shadow-inner border border-teal-100/50">
+                    <div 
+                      className="h-full rounded-full bg-gradient-to-r from-teal-300 to-teal-400" 
+                      style={{ width: `${overview.month_progress_percentage}%` }}
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-xs font-extrabold text-emerald-950 tracking-wide drop-shadow-md">
+                        {overview.days_in_month - overview.current_day_of_month} days left
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
           <div className="flex lg:col-span-4">
-            <div className="relative flex w-full flex-col overflow-hidden rounded-3xl border border-slate-100 bg-gradient-to-br from-white via-slate-50/80 to-teal-50/35 p-4 shadow-[0_22px_60px_-48px_rgba(15,23,42,0.55)]">
-              <div className="pointer-events-none absolute -right-14 -top-14 h-36 w-36 rounded-full bg-teal-100/70 blur-3xl" />
+            <div className="relative flex w-full flex-col overflow-hidden rounded-3xl border border-teal-100 bg-gradient-to-br from-emerald-50/80 via-slate-50 to-teal-100/60 p-5 shadow-sm">
+              <div className="pointer-events-none absolute -right-14 -top-14 h-56 w-56 rounded-full bg-teal-200/40 blur-3xl mix-blend-multiply" />
+              <div className="pointer-events-none absolute -bottom-10 -left-10 h-48 w-48 rounded-full bg-emerald-200/40 blur-3xl mix-blend-multiply" />
+              
               <div className="relative">
-                <span className="block text-xs font-bold uppercase tracking-wider text-teal-700">What matters now</span>
-                <p className="mt-1.5 text-xs font-medium leading-snug text-slate-500">
+                <span className="block text-xs font-black uppercase tracking-widest text-teal-900">What matters now</span>
+                <p className="mt-1.5 text-sm font-semibold leading-snug text-teal-800/80">
                   The current grid fallback, bill impact, and saving signal.
                 </p>
               </div>
-              <div className="relative mt-3 flex flex-1 flex-col justify-between gap-2">
+              <div className="relative mt-5 flex flex-1 flex-col justify-between gap-3">
                 <ImpactRow
                   detail="Grid energy needed after credit offset"
                   icon={Zap}
@@ -179,7 +184,7 @@ export default function ConsumerOverview({ consumer }) {
                   detail="Current blended monthly bill"
                   icon={Receipt}
                   label="Bill so far"
-                  tone="blue"
+                  tone="teal"
                   value={`RM${overview.total_bill.toFixed(2)}`}
                 />
                 <ImpactRow

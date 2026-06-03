@@ -29,32 +29,32 @@ function ProgressLine({ label, value, percent, tone = 'teal' }) {
 function ImpactRow({ icon: Icon, label, value, detail, tone = 'teal' }) {
   const tones = {
     amber: {
-      row: 'from-amber-50/80 to-white hover:border-amber-200/80',
-      icon: 'bg-amber-100 text-amber-600 shadow-[0_12px_28px_-18px_rgba(245,158,11,0.8)]'
+      row: 'from-white via-amber-50/40 to-amber-100/60 hover:border-amber-300',
+      icon: 'bg-amber-100/90 text-amber-600 shadow-sm'
     },
     teal: {
-      row: 'from-teal-50/80 to-white hover:border-teal-200/80',
-      icon: 'bg-teal-100 text-teal-600 shadow-[0_12px_28px_-18px_rgba(20,184,166,0.8)]'
+      row: 'from-white via-teal-50/40 to-teal-100/60 hover:border-teal-300',
+      icon: 'bg-teal-100/90 text-teal-600 shadow-sm'
     },
     emerald: {
-      row: 'from-emerald-50/80 to-white hover:border-emerald-200/80',
-      icon: 'bg-emerald-100 text-emerald-600 shadow-[0_12px_28px_-18px_rgba(16,185,129,0.8)]'
+      row: 'from-white via-emerald-50/40 to-emerald-100/60 hover:border-emerald-300',
+      icon: 'bg-emerald-100/90 text-emerald-600 shadow-sm'
     }
   };
   const theme = tones[tone] || tones.teal;
 
   return (
-    <div className={`group rounded-2xl border border-slate-100 bg-gradient-to-br p-3 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_42px_-34px_rgba(15,23,42,0.65)] ${theme.row}`}>
+    <div className={`group rounded-2xl border-2 border-white bg-gradient-to-br p-3.5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl backdrop-blur-md ${theme.row}`}>
       <div className="flex min-w-0 items-center gap-3">
-        <span className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-105 ${theme.icon}`}>
-          <Icon size={16} />
+        <span className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 ${theme.icon}`}>
+          <Icon size={20} strokeWidth={2.5} />
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
-            <span className="block text-sm font-bold text-slate-700">{label}</span>
-            <strong className="shrink-0 text-right text-lg font-bold text-slate-950 tabular-nums">{value}</strong>
+            <span className="block text-sm font-extrabold text-slate-800">{label}</span>
+            <strong className="shrink-0 text-right text-lg font-black text-slate-900 tabular-nums">{value}</strong>
           </div>
-          <span className="mt-0.5 block max-w-[15rem] text-xs leading-snug text-slate-500">{detail}</span>
+          <span className="mt-0.5 block max-w-[15rem] text-xs font-semibold leading-snug text-slate-600">{detail}</span>
         </div>
       </div>
     </div>
@@ -109,85 +109,89 @@ export default function ProsumerOverview({ prosumer }) {
         {data && (
           <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-12">
             <div className="flex lg:col-span-8">
-              <div className="relative flex w-full flex-col overflow-hidden rounded-3xl border border-amber-100 bg-gradient-to-br from-white via-amber-50/45 to-emerald-50/60 p-6 shadow-[0_28px_70px_-55px_rgba(245,158,11,0.65)]">
-                <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-amber-200/45 blur-3xl" />
-                <div className="pointer-events-none absolute -bottom-20 left-16 h-44 w-44 rounded-full bg-emerald-100/70 blur-3xl" />
+              <div className="relative flex w-full flex-col overflow-hidden rounded-3xl border border-amber-100 bg-gradient-to-br from-amber-50 via-orange-50/70 to-emerald-100/80 p-6 shadow-sm">
+                <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-amber-200/50 blur-3xl mix-blend-multiply" />
+                <div className="pointer-events-none absolute -bottom-20 left-16 h-64 w-64 rounded-full bg-emerald-200/40 blur-3xl mix-blend-multiply" />
 
                 <div className="relative">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
-                      <span className="block text-xs font-bold uppercase tracking-wider text-amber-700">Exported this month</span>
+                      <span className="block text-xs font-black uppercase tracking-widest text-amber-800">Exported this month</span>
                       <div className="mt-3 flex flex-wrap items-end gap-x-3 gap-y-1">
-                        <strong className="text-4xl font-bold tracking-tight text-slate-950 tabular-nums">
+                        <strong className="text-5xl font-black tracking-tight text-amber-950 tabular-nums drop-shadow-sm">
                           {data.exported_kwh.toLocaleString()}
                         </strong>
-                        <span className="pb-1 text-lg font-bold text-slate-500 tabular-nums">
+                        <span className="pb-1 text-xl font-bold text-amber-800 tabular-nums drop-shadow-sm">
                           / {(data.export_commitment_kwh || 0).toLocaleString()} kWh
                         </span>
                       </div>
                     </div>
-                    <div className="rounded-2xl border border-white/80 bg-white/75 px-4 py-3 shadow-sm">
-                      <span className="block text-xs font-bold uppercase tracking-wider text-slate-500">Plan</span>
-                      <strong className="mt-1 block text-sm font-bold text-slate-800">{data.selected_export_plan}</strong>
+                    <div className="rounded-2xl border border-white/60 bg-white/50 backdrop-blur-sm px-4 py-3 shadow-sm">
+                      <span className="block text-xs font-bold uppercase tracking-wider text-amber-800/80">Plan</span>
+                      <strong className="mt-1 block text-sm font-black text-amber-950">{data.selected_export_plan}</strong>
                     </div>
                   </div>
 
-                  <div className="mt-6">
+                  <div className="mt-8 rounded-2xl bg-white/30 p-4 backdrop-blur-md border border-white/50 shadow-sm">
                     <ProgressLine
                       label="Export quota pace"
                       percent={data.quota_progress_percentage}
                       value={`${data.quota_progress_percentage.toFixed(1)}% fulfilled`}
+                      tone="amber"
                     />
                   </div>
 
-                  <div className="mt-6 rounded-2xl border border-white/80 bg-white/75 p-4 shadow-sm">
-                    <div className="mb-3 grid gap-3 md:grid-cols-[0.85fr_1.15fr] md:items-end">
-                      <div>
-                        <span className="block text-xs font-bold uppercase tracking-wider text-slate-500">Billing cycle</span>
-                        <strong className="mt-1 block text-xl font-bold text-slate-950 tabular-nums">
-                          Day {data.current_day_of_month} of {data.days_in_month}
-                        </strong>
+                  <div className="mt-5 flex flex-col gap-4 rounded-2xl border border-white/50 bg-white/40 p-4 shadow-sm backdrop-blur-md">
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Today</span>
+                        <strong className="text-sm text-slate-950">{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</strong>
                       </div>
-                      <div className="rounded-xl border border-emerald-200/80 bg-gradient-to-br from-emerald-100 via-teal-50 to-white px-4 py-2.5 shadow-[0_14px_34px_-30px_rgba(16,185,129,0.75)]">
-                        <span className="block text-xs font-bold uppercase tracking-wider text-emerald-800">Calendar elapsed</span>
-                        <strong className="mt-0.5 block text-lg font-bold text-emerald-900 tabular-nums">
-                          {data.month_progress_percentage.toFixed(1)}%
-                        </strong>
+                      <div className="flex flex-col text-right">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cycle Ends</span>
+                        <strong className="text-sm text-slate-950">{new Date(new Date().getFullYear(), new Date().getMonth(), data.days_in_month).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</strong>
                       </div>
                     </div>
-                    <ProgressLine
-                      label="Month progress"
-                      percent={data.month_progress_percentage}
-                      tone="amber"
-                      value=""
-                    />
+                    
+                    <div className="relative h-6 w-full overflow-hidden rounded-full bg-amber-50 shadow-inner border border-amber-200/50">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-400"
+                        style={{ width: `${data.month_progress_percentage}%` }}
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-xs font-extrabold text-amber-950 tracking-wide drop-shadow-md">
+                          {data.days_in_month - data.current_day_of_month} days left
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="flex lg:col-span-4">
-              <div className="relative flex w-full flex-col overflow-hidden rounded-3xl border border-slate-100 bg-gradient-to-br from-white via-amber-50/35 to-teal-50/35 p-4 shadow-[0_22px_60px_-48px_rgba(15,23,42,0.55)]">
-                <div className="pointer-events-none absolute -right-14 -top-14 h-36 w-36 rounded-full bg-amber-100/70 blur-3xl" />
+              <div className="relative flex w-full flex-col overflow-hidden rounded-3xl border border-amber-100 bg-gradient-to-br from-emerald-50/80 via-slate-50 to-amber-100/60 p-5 shadow-sm">
+                <div className="pointer-events-none absolute -right-14 -top-14 h-56 w-56 rounded-full bg-emerald-200/40 blur-3xl mix-blend-multiply" />
+                <div className="pointer-events-none absolute -bottom-10 -left-10 h-48 w-48 rounded-full bg-amber-200/40 blur-3xl mix-blend-multiply" />
                 <div className="relative">
-                  <span className="block text-xs font-bold uppercase tracking-wider text-amber-700">What matters now</span>
-                  <p className="mt-1.5 text-xs font-medium leading-snug text-slate-500">
+                  <span className="block text-xs font-black uppercase tracking-widest text-emerald-900">What matters now</span>
+                  <p className="mt-1.5 text-sm font-semibold leading-snug text-emerald-800/80">
                     Your payout route, extra export, and earnings signal.
                   </p>
                 </div>
-                <div className="relative mt-3 flex flex-1 flex-col justify-between gap-2">
+                <div className="relative mt-5 flex flex-1 flex-col justify-between gap-3">
                   <ImpactRow
                     detail="Export credited through SolarMate quota"
                     icon={Zap}
                     label="SolarMate sold"
-                    tone="teal"
+                    tone="amber"
                     value={`${data.solar_mate_kwh.toLocaleString()} kWh`}
                   />
                   <ImpactRow
                     detail="Export above quota routed to Solar ATAP"
                     icon={Leaf}
                     label="ATAP excess"
-                    tone="amber"
+                    tone="teal"
                     value={`${data.solar_atap_kwh.toLocaleString()} kWh`}
                   />
                   <ImpactRow

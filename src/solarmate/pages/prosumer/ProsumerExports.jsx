@@ -39,25 +39,29 @@ function roundKwh(value) {
 }
 
 const insightStyles = {
-  amber: {
-    shell: 'from-amber-50 via-white to-white border-amber-100',
-    icon: 'bg-amber-100 text-amber-600',
-    text: 'text-amber-700'
-  },
   emerald: {
-    shell: 'from-emerald-50 via-white to-white border-emerald-100',
-    icon: 'bg-emerald-100 text-emerald-600',
-    text: 'text-emerald-700'
+    shell: 'from-emerald-50/80 via-white to-emerald-50/50 border-emerald-200/60 shadow-sm backdrop-blur-md hover:-translate-y-0.5 hover:shadow-md transition-all duration-300',
+    icon: 'bg-emerald-100/90 text-emerald-600 shadow-sm',
+    labelText: 'text-emerald-800',
+    valueText: 'text-emerald-950'
+  },
+  amber: {
+    shell: 'from-amber-50/80 via-white to-amber-50/50 border-amber-200/60 shadow-sm backdrop-blur-md hover:-translate-y-0.5 hover:shadow-md transition-all duration-300',
+    icon: 'bg-amber-100/90 text-amber-600 shadow-sm',
+    labelText: 'text-amber-800',
+    valueText: 'text-amber-950'
   },
   sky: {
-    shell: 'from-sky-50 via-white to-white border-sky-100',
-    icon: 'bg-sky-100 text-sky-600',
-    text: 'text-sky-700'
+    shell: 'from-sky-50/80 via-white to-sky-50/50 border-sky-200/60 shadow-sm backdrop-blur-md hover:-translate-y-0.5 hover:shadow-md transition-all duration-300',
+    icon: 'bg-sky-100/90 text-sky-600 shadow-sm',
+    labelText: 'text-sky-800',
+    valueText: 'text-sky-950'
   },
   teal: {
-    shell: 'from-teal-50 via-white to-white border-teal-100',
-    icon: 'bg-teal-100 text-teal-600',
-    text: 'text-teal-700'
+    shell: 'from-teal-50/80 via-white to-teal-50/50 border-teal-200/60 shadow-sm backdrop-blur-md hover:-translate-y-0.5 hover:shadow-md transition-all duration-300',
+    icon: 'bg-teal-100/90 text-teal-600 shadow-sm',
+    labelText: 'text-teal-800',
+    valueText: 'text-teal-950'
   }
 };
 
@@ -87,9 +91,10 @@ function ReportMetric({ label, value, tone = 'teal' }) {
   const styles = insightStyles[tone] || insightStyles.teal;
 
   return (
-    <div className={`rounded-2xl border bg-gradient-to-br ${styles.shell} px-5 py-4`}>
-      <p className="text-xs font-bold uppercase tracking-wider text-slate-500">{label}</p>
-      <p className="mt-2 text-2xl font-bold tracking-tight text-slate-950">{value}</p>
+    <div className={`group relative overflow-hidden rounded-2xl border bg-gradient-to-br ${styles.shell} px-5 py-4`}>
+      <div className={`pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full blur-3xl opacity-0 transition-opacity duration-500 group-hover:opacity-100 ${styles.icon.split(' ')[0].replace('/90', '/40')}`} />
+      <p className={`text-[10px] font-extrabold uppercase tracking-widest ${styles.labelText}`}>{label}</p>
+      <p className={`mt-1 text-2xl font-bold tracking-tight ${styles.valueText} tabular-nums`}>{value}</p>
     </div>
   );
 }
@@ -97,13 +102,13 @@ function ReportMetric({ label, value, tone = 'teal' }) {
 function InsightChip({ icon: Icon, label, value, tone = 'teal', variant = 'dark' }) {
   const styles = insightStyles[tone] || insightStyles.teal;
   const shellClass = variant === 'light'
-    ? 'border-slate-200 bg-white/80 text-slate-900 shadow-sm'
+    ? 'border-white/80 bg-white/60 text-slate-900 shadow-sm backdrop-blur-md'
     : 'border-white/10 bg-white/10 text-white/90 backdrop-blur';
-  const labelClass = variant === 'light' ? 'text-slate-500' : 'text-white/55';
+  const labelClass = variant === 'light' ? 'text-slate-600' : 'text-white/55';
   const valueClass = variant === 'light' ? 'text-slate-950' : 'text-white';
 
   return (
-    <div className={`flex items-center gap-3.5 rounded-full border px-5 py-2.5 ${shellClass}`}>
+    <div className={`flex items-center gap-3.5 rounded-full border px-5 py-2.5 hover:scale-105 transition-transform duration-300 ${shellClass}`}>
       <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${styles.icon}`}>
         <Icon size={17} />
       </div>
@@ -409,14 +414,16 @@ export default function ProsumerExports({ prosumer, user }) {
       {view === 'weekly' && (
         <>
           <DashboardCard eyebrow="Weekly export" title="This Week's Solar Export">
-            <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.07)]">
-              <div className="bg-gradient-to-br from-teal-100 via-emerald-100 to-amber-100 px-7 py-6">
-                <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="overflow-hidden rounded-[2.5rem] border border-white/60 bg-white/40 shadow-sm backdrop-blur-md">
+              <div className="relative overflow-hidden bg-gradient-to-br from-teal-50/90 via-emerald-50/60 to-amber-100/80 px-8 py-8">
+                <div className="pointer-events-none absolute -right-10 -top-10 h-64 w-64 rounded-full bg-amber-200/50 blur-3xl mix-blend-multiply" />
+                <div className="pointer-events-none absolute -bottom-10 -left-10 h-48 w-48 rounded-full bg-emerald-200/40 blur-3xl mix-blend-multiply" />
+                <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-teal-800">Export performance</p>
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-teal-800">Export performance</p>
                     <div className="mt-3 flex flex-wrap items-end gap-x-3 gap-y-1">
-                      <span className="text-5xl font-bold tracking-tight text-slate-950">{kwh(weeklySummary.exported)}</span>
-                      <span className="pb-2 text-xl font-bold text-slate-600">kWh exported</span>
+                      <span className="text-5xl font-black tracking-tight text-teal-950 drop-shadow-sm">{kwh(weeklySummary.exported)}</span>
+                      <span className="pb-2 text-xl font-bold text-teal-800 drop-shadow-sm">kWh exported</span>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-3">
@@ -426,7 +433,7 @@ export default function ProsumerExports({ prosumer, user }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 p-5 md:grid-cols-3">
+              <div className="grid grid-cols-1 gap-5 p-6 md:grid-cols-3">
                 <ReportMetric label="Generated" tone="amber" value={`${kwh(weeklySummary.generated)} kWh`} />
                 <ReportMetric label="Used on site" tone="sky" value={`${kwh(weeklySummary.local)} kWh`} />
                 <ReportMetric label="Daily export average" tone="teal" value={`${weeklySummary.average.toFixed(2)} kWh`} />
@@ -436,6 +443,7 @@ export default function ProsumerExports({ prosumer, user }) {
 
           <DashboardCard eyebrow="Weekly chart" title="Generated, Consumed, and Exported by Day">
             <CompactGroupedBarChart
+              className="rounded-[2rem] border border-amber-100/40 bg-gradient-to-br from-amber-50/60 via-emerald-50/30 to-teal-50/40 p-6 backdrop-blur-sm mt-4"
               data={weeklyChartData}
               emptyMessage={hasEspDevice ? 'No ESP packets received in this browser session. Send a reading to add the first bar.' : 'No weekly export data yet.'}
               height={300}
@@ -462,14 +470,16 @@ export default function ProsumerExports({ prosumer, user }) {
             eyebrow="Monthly export"
             title="SolarMate Quota and Solar ATAP Excess"
           >
-            <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.07)]">
-              <div className="bg-gradient-to-br from-teal-100 via-emerald-100 to-amber-100 px-7 py-6">
-                <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="overflow-hidden rounded-[2.5rem] border border-white/60 bg-white/40 shadow-sm backdrop-blur-md">
+              <div className="relative overflow-hidden bg-gradient-to-br from-amber-50/90 via-orange-50/60 to-emerald-100/80 px-8 py-8">
+                <div className="pointer-events-none absolute -right-10 -top-10 h-64 w-64 rounded-full bg-amber-200/50 blur-3xl mix-blend-multiply" />
+                <div className="pointer-events-none absolute -bottom-10 -left-10 h-48 w-48 rounded-full bg-emerald-200/40 blur-3xl mix-blend-multiply" />
+                <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-teal-800">Settlement performance</p>
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-800">Settlement performance</p>
                     <div className="mt-3 flex flex-wrap items-end gap-x-3 gap-y-1">
-                      <span className="text-5xl font-bold tracking-tight text-slate-950">{kwh(currentMonth?.actual_exported_kwh)}</span>
-                      <span className="pb-2 text-xl font-bold text-slate-600">/ {quota.toLocaleString()} kWh quota</span>
+                      <span className="text-5xl font-black tracking-tight text-amber-950 drop-shadow-sm">{kwh(currentMonth?.actual_exported_kwh)}</span>
+                      <span className="pb-2 text-xl font-bold text-amber-800 drop-shadow-sm">/ {quota.toLocaleString()} kWh quota</span>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-3">
@@ -477,7 +487,7 @@ export default function ProsumerExports({ prosumer, user }) {
                     <InsightChip icon={Award} label="Quota used" tone="amber" value={`${quotaUsed.toFixed(0)}%`} variant="light" />
                   </div>
                 </div>
-                <div className="mt-6">
+                <div className="relative mt-8 rounded-2xl bg-white/40 p-5 backdrop-blur-md border border-white/50 shadow-sm">
                   <ProgressBar
                     label="SolarMate quota pace"
                     percent={quotaUsed}
@@ -486,7 +496,7 @@ export default function ProsumerExports({ prosumer, user }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 p-5 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-5 p-6 md:grid-cols-2">
                 <ReportMetric label="Sold to SolarMate" tone="teal" value={`${kwh(currentMonth?.solar_mate_kwh)} kWh`} />
                 <ReportMetric label="Solar ATAP excess" tone="amber" value={`${kwh(currentMonth?.solar_atap_kwh)} kWh`} />
               </div>
@@ -495,6 +505,7 @@ export default function ProsumerExports({ prosumer, user }) {
 
           <DashboardCard eyebrow="Monthly chart" title="Monthly Energy Sold by Channel">
             <CompactGroupedBarChart
+              className="rounded-[2rem] border border-amber-100/40 bg-gradient-to-br from-amber-50/60 via-emerald-50/30 to-teal-50/40 p-6 backdrop-blur-sm mt-4"
               data={monthlyChartData}
               emptyMessage={hasEspDevice ? 'No session export yet. Send ESP readings to build the monthly split.' : 'No monthly export data yet.'}
               height={300}

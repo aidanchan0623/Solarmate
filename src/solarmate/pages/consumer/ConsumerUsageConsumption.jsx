@@ -30,20 +30,21 @@ function KpiCard({
   accent = 'from-teal-500 to-emerald-400',
   icon: Icon,
   iconClass = 'text-teal-600 bg-teal-50',
-  tint = 'from-white via-teal-50/35 to-white'
+  tint = 'from-teal-50/80 via-white to-emerald-50/80'
 }) {
   return (
-    <div className={`group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-br ${tint} p-5 shadow-[0_18px_48px_-42px_rgba(15,23,42,0.55)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_60px_-44px_rgba(13,148,136,0.7)]`}>
+    <div className={`group relative overflow-hidden rounded-2xl border border-teal-100/50 bg-gradient-to-br ${tint} p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md backdrop-blur-sm`}>
       <div className={`absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r ${accent}`} />
-      <div className="pointer-events-none absolute -right-12 -top-12 h-28 w-28 rounded-full bg-white/80 blur-3xl transition-opacity duration-300 group-hover:opacity-70" />
+      <div className="pointer-events-none absolute -right-12 -top-12 h-28 w-28 rounded-full bg-teal-200/40 blur-3xl mix-blend-multiply transition-opacity duration-300 group-hover:opacity-70" />
+      <div className="pointer-events-none absolute -bottom-10 -left-10 h-24 w-24 rounded-full bg-emerald-200/40 blur-3xl mix-blend-multiply transition-opacity duration-300 group-hover:opacity-70" />
       <div className="relative flex items-start justify-between gap-4">
         <div>
-          <span className="block text-xs font-bold uppercase tracking-wider text-slate-500">{label}</span>
-          <strong className="mt-3 block text-2xl font-bold tracking-tight text-slate-950 tabular-nums">{value}</strong>
+          <span className="block text-xs font-bold uppercase tracking-wider text-teal-800/80">{label}</span>
+          <strong className="mt-3 block text-2xl font-black tracking-tight text-teal-950 tabular-nums">{value}</strong>
         </div>
         {Icon && (
           <span className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl shadow-sm transition-transform duration-300 group-hover:scale-105 ${iconClass}`}>
-            <Icon size={18} />
+            <Icon size={20} strokeWidth={2.5} />
           </span>
         )}
       </div>
@@ -66,10 +67,10 @@ function PaymentStatusBadge({ status }) {
 
 function MonthlyUsageTable({ rows }) {
   return (
-    <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_18px_48px_-42px_rgba(15,23,42,0.55)]">
+    <div className="mt-6 overflow-hidden rounded-2xl border border-teal-100/50 bg-white/80 shadow-sm backdrop-blur-sm">
       <table className="w-full min-w-[860px] border-collapse text-left">
         <thead>
-          <tr className="border-b border-slate-100 bg-slate-50/70 text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <tr className="border-b border-teal-100/50 bg-teal-50/50 text-xs font-bold uppercase tracking-wider text-teal-800/80">
             <th className="px-5 py-4">Month</th>
             <th className="px-5 py-4">Total Usage</th>
             <th className="px-5 py-4">Green Credit</th>
@@ -189,25 +190,25 @@ export default function ConsumerUsageConsumption({ consumer }) {
               <KpiCard
                 accent="from-cyan-400 to-teal-500"
                 icon={BatteryCharging}
-                iconClass="bg-teal-50 text-teal-600"
+                iconClass="bg-teal-100/80 text-teal-700"
                 label="Total Usage"
-                tint="from-white via-cyan-50/45 to-white"
+                tint="from-teal-50 via-cyan-50/60 to-emerald-50/80"
                 value={`${kwh(weeklySummary.total)} kWh`}
               />
               <KpiCard
                 accent="from-emerald-400 to-lime-300"
                 icon={Leaf}
-                iconClass="bg-emerald-50 text-emerald-600"
+                iconClass="bg-emerald-100/80 text-emerald-700"
                 label="Green Credit Used"
-                tint="from-white via-emerald-50/45 to-white"
+                tint="from-emerald-50 via-teal-50/60 to-lime-50/60"
                 value={`${kwh(weeklySummary.green)} kWh`}
               />
               <KpiCard
                 accent="from-sky-400 to-cyan-400"
                 icon={Zap}
-                iconClass="bg-sky-50 text-sky-600"
+                iconClass="bg-sky-100/80 text-sky-700"
                 label="TNB Import"
-                tint="from-white via-sky-50/45 to-white"
+                tint="from-sky-50 via-blue-50/50 to-cyan-50/80"
                 value={`${kwh(weeklySummary.tnb)} kWh`}
               />
             </div>
@@ -216,7 +217,7 @@ export default function ConsumerUsageConsumption({ consumer }) {
           <DashboardCard eyebrow="Weekly chart" title="Green Credit and TNB Import by Day">
             <CompactGroupedBarChart
               barSize={30}
-              className="bg-gradient-to-br from-white via-teal-50/30 to-sky-50/30"
+              className="rounded-2xl border border-teal-100/40 bg-gradient-to-br from-teal-50/60 via-emerald-50/30 to-cyan-50/40 p-4 backdrop-blur-sm"
               data={weeklyChartData}
               height={300}
               series={[
@@ -249,25 +250,25 @@ export default function ConsumerUsageConsumption({ consumer }) {
               <KpiCard
                 accent="from-cyan-400 to-teal-500"
                 icon={BatteryCharging}
-                iconClass="bg-teal-50 text-teal-600"
+                iconClass="bg-teal-100/80 text-teal-700"
                 label="Total Usage"
-                tint="from-white via-cyan-50/45 to-white"
+                tint="from-teal-50 via-cyan-50/60 to-emerald-50/80"
                 value={`${kwh(currentMonth?.total_usage_kwh)} kWh`}
               />
               <KpiCard
                 accent="from-emerald-400 to-lime-300"
                 icon={Leaf}
-                iconClass="bg-emerald-50 text-emerald-600"
+                iconClass="bg-emerald-100/80 text-emerald-700"
                 label="Green Credit Used"
-                tint="from-white via-emerald-50/45 to-white"
+                tint="from-emerald-50 via-teal-50/60 to-lime-50/60"
                 value={`${kwh(currentMonth?.green_credit_kwh)} kWh`}
               />
               <KpiCard
                 accent="from-sky-400 to-cyan-400"
                 icon={Zap}
-                iconClass="bg-sky-50 text-sky-600"
+                iconClass="bg-sky-100/80 text-sky-700"
                 label="TNB Import"
-                tint="from-white via-sky-50/45 to-white"
+                tint="from-sky-50 via-blue-50/50 to-cyan-50/80"
                 value={`${kwh(currentMonth?.tnb_import_kwh)} kWh`}
               />
             </div>
@@ -276,7 +277,7 @@ export default function ConsumerUsageConsumption({ consumer }) {
           <DashboardCard eyebrow="Monthly chart" title="Monthly Usage by Source">
             <CompactGroupedBarChart
               barSize={38}
-              className="bg-gradient-to-br from-white via-teal-50/30 to-sky-50/30"
+              className="rounded-2xl border border-teal-100/40 bg-gradient-to-br from-teal-50/60 via-emerald-50/30 to-cyan-50/40 p-4 backdrop-blur-sm"
               data={monthlyChartData}
               height={300}
               series={[

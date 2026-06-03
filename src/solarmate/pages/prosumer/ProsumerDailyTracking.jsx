@@ -132,6 +132,7 @@ export default function ProsumerDailyTracking({ prosumer, user }) {
         <DashboardCard eyebrow="ESP32 readings" title="Today's Live Prototype Chart">
           {espChartData.length > 0 ? (
             <CompactGroupedBarChart
+              className="rounded-2xl border border-amber-100/40 bg-gradient-to-br from-amber-50/60 via-emerald-50/30 to-teal-50/40 p-4 backdrop-blur-sm mt-4"
               data={espChartData}
               series={[
                 { key: 'scaledEnergyKwh', label: 'Demo export kWh', color: 'teal' },
@@ -196,6 +197,7 @@ export default function ProsumerDailyTracking({ prosumer, user }) {
 
       <DashboardCard eyebrow="Past 7 days" title="Past 7 Days Energy Breakdown">
         <CompactGroupedBarChart
+          className="rounded-2xl border border-amber-100/40 bg-gradient-to-br from-amber-50/60 via-emerald-50/30 to-teal-50/40 p-4 backdrop-blur-sm mt-4"
           data={chartData}
           series={[
             { key: 'generatedKwh', label: 'Generated', color: 'gold' },

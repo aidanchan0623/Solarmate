@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Zap } from 'lucide-react';
 import { getConsumerProfile, getCurrentUser, getProsumerProfile, getStoredToken, setStoredToken } from './api/client';
 import OnboardingModal from './components/OnboardingModal';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ConsumerDashboard from './pages/consumer/ConsumerDashboard';
 import Login from './pages/Login';
 import ProsumerDashboard from './pages/prosumer/ProsumerDashboard';
+import logoUrl from '../components/logo.svg';
 
 const dashboardByRole = {
   prosumer: ProsumerDashboard,
@@ -80,7 +80,7 @@ export default function App() {
         <section className="login-hero">
           <div className="brand-block">
             <div className="logo-mark">
-              <Zap size={24} />
+              <img src={logoUrl} alt="SolarMate Logo" />
             </div>
             <div>
               <strong>SolarMate</strong>

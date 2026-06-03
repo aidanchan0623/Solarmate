@@ -1,5 +1,6 @@
-import { LogOut, Zap } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { clearModalBodyState } from './Modal';
+import logoUrl from '../../components/logo.svg';
 
 const roleCopy = {
   prosumer: {
@@ -49,7 +50,7 @@ export default function AppShell({
       >
         <div className="brand-block">
           <div className="logo-mark">
-            <Zap size={24} />
+            <img src={logoUrl} alt="SolarMate Logo" />
           </div>
           <div>
             <strong>SolarMate</strong>

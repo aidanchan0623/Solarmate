@@ -1,4 +1,5 @@
-import { Building2, Leaf, ShieldCheck, Sparkles, SunMedium, Zap } from 'lucide-react';
+import { Building2, Leaf, ShieldCheck, Sparkles, SunMedium } from 'lucide-react';
+import logoUrl from '../../components/logo.svg';
 import { useState } from 'react';
 import { loginUser, registerUser } from '../api/client';
 import { calculateRateDiscount } from '../utils/calculations';
@@ -80,7 +81,7 @@ export default function Login({ onLogin }) {
       <section className="login-hero">
         <div className="brand-block login-brand">
           <div className="logo-mark login-logo-mark">
-            <Zap size={22} strokeWidth={2.6} />
+            <img src={logoUrl} alt="SolarMate Logo" />
           </div>
           <div>
             <strong className="font-extrabold text-slate-900">SolarMate</strong>

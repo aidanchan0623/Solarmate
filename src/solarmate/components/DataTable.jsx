@@ -4,12 +4,12 @@ export default function DataTable({ columns, rows, theme = 'light' }) {
   const isDark = theme === 'dark';
   
   return (
-    <div className={`w-full overflow-x-auto rounded-2xl border shadow-2xl backdrop-blur-xl ${isDark ? 'border-white/10 bg-slate-900/50' : 'border-slate-200 bg-white/60'}`}>
+    <div className={`w-full overflow-x-auto rounded-[2rem] border shadow-sm backdrop-blur-md ${isDark ? 'border-white/10 bg-slate-900/50' : 'border-white/60 bg-white/40'}`}>
       <table className="w-full min-w-max border-collapse">
         <thead>
-          <tr className={`border-b bg-transparent text-xs font-semibold uppercase tracking-wider ${isDark ? 'border-white/10 text-slate-400' : 'border-slate-200 text-slate-500'}`}>
+          <tr className={`border-b text-[11px] font-extrabold uppercase tracking-widest ${isDark ? 'border-white/10 text-slate-400 bg-slate-800/50' : 'border-white/50 text-teal-900/70 bg-gradient-to-r from-teal-50/60 via-emerald-50/40 to-transparent'}`}>
             {columns.map((column) => (
-              <th className="whitespace-nowrap px-6 py-4 text-left" key={column.key}>
+              <th className="whitespace-nowrap px-6 py-5 text-left" key={column.key}>
                 {column.label}
               </th>
             ))}
@@ -18,7 +18,7 @@ export default function DataTable({ columns, rows, theme = 'light' }) {
         <tbody>
           {rows.map((row, index) => (
             <tr
-              className={`border-b transition-colors ${isDark ? 'border-white/5 hover:bg-slate-800/50' : 'border-slate-100 hover:bg-slate-50'}`}
+              className={`border-b transition-colors ${isDark ? 'border-white/5 hover:bg-slate-800/50' : 'border-white/40 hover:bg-white/80'}`}
               key={row.id || `${row.date || row.created_at || 'row'}-${index}`}
             >
               {columns.map((column) => (

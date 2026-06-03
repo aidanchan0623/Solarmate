@@ -28,18 +28,51 @@ function malaysiaDateTime(value) {
   }).format(new Date(value));
 }
 
-function WalletMetricCard({ label, value, detail, className = '', accent = 'border-t-teal-500', icon: Icon, iconClass = 'bg-teal-50 text-teal-600', tint = 'from-white to-slate-50' }) {
+function WalletMetricCard({ label, value, detail, className = '', tone = 'emerald', icon: Icon }) {
+  const tones = {
+    blue: {
+      shell: 'from-blue-50/80 via-white to-blue-50/50 border-blue-200/60 shadow-sm backdrop-blur-md hover:-translate-y-0.5 hover:shadow-md transition-all duration-300',
+      icon: 'bg-blue-100/90 text-blue-600 shadow-sm',
+      label: 'text-blue-800',
+      value: 'text-blue-950',
+      glow: 'bg-blue-300/40'
+    },
+    emerald: {
+      shell: 'from-emerald-50/80 via-white to-emerald-50/50 border-emerald-200/60 shadow-sm backdrop-blur-md hover:-translate-y-0.5 hover:shadow-md transition-all duration-300',
+      icon: 'bg-emerald-100/90 text-emerald-600 shadow-sm',
+      label: 'text-emerald-800',
+      value: 'text-emerald-950',
+      glow: 'bg-emerald-300/40'
+    },
+    amber: {
+      shell: 'from-amber-50/80 via-white to-amber-50/50 border-amber-200/60 shadow-sm backdrop-blur-md hover:-translate-y-0.5 hover:shadow-md transition-all duration-300',
+      icon: 'bg-amber-100/90 text-amber-600 shadow-sm',
+      label: 'text-amber-800',
+      value: 'text-amber-950',
+      glow: 'bg-amber-300/40'
+    },
+    sky: {
+      shell: 'from-sky-50/80 via-white to-sky-50/50 border-sky-200/60 shadow-sm backdrop-blur-md hover:-translate-y-0.5 hover:shadow-md transition-all duration-300',
+      icon: 'bg-sky-100/90 text-sky-600 shadow-sm',
+      label: 'text-sky-800',
+      value: 'text-sky-950',
+      glow: 'bg-sky-300/40'
+    }
+  };
+  const theme = tones[tone] || tones.emerald;
+
   return (
-    <div className={`flex flex-col rounded-xl border border-slate-200 bg-gradient-to-br ${tint} p-4 border-t-4 shadow-[0_14px_34px_-30px_rgba(15,23,42,0.55)] ${accent} ${className}`}>
+    <div className={`group relative overflow-hidden flex flex-col rounded-2xl border bg-gradient-to-br ${theme.shell} p-5 ${className}`}>
+      <div className={`pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full blur-3xl opacity-0 transition-opacity duration-500 group-hover:opacity-100 ${theme.glow}`} />
       <div className="flex items-start justify-between gap-4">
         <div>
-          <span className="text-slate-500 text-sm font-medium">{label}</span>
-          <strong className="mt-2 block text-slate-900 font-bold text-xl tabular-nums">{value}</strong>
-          {detail && <span className="mt-1 block text-sm font-medium text-slate-500">{detail}</span>}
+          <span className={`text-[10px] font-extrabold uppercase tracking-widest ${theme.label}`}>{label}</span>
+          <strong className={`mt-2 block text-3xl font-bold tracking-tight tabular-nums ${theme.value}`}>{value}</strong>
+          {detail && <span className={`mt-1.5 block text-xs font-semibold ${theme.label} opacity-80`}>{detail}</span>}
         </div>
         {Icon && (
-          <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-sm ${iconClass}`}>
-            <Icon size={18} />
+          <span className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 ${theme.icon}`}>
+            <Icon size={20} strokeWidth={2.5} />
           </span>
         )}
       </div>
@@ -275,20 +308,16 @@ export default function ConsumerGreenCreditWallet({ consumer }) {
           </div>
           <div className="grid grid-cols-1 gap-4">
             <WalletMetricCard
-              accent="border-t-blue-500"
               detail={lastPayment ? `Paid on ${malaysiaDateTime(lastPayment.created_at)}` : 'No completed bill payment found'}
               icon={Receipt}
-              iconClass="bg-blue-50 text-blue-600"
               label="Last Payment"
-              tint="from-blue-50/80 to-white"
+              tone="blue"
               value={lastPayment ? money(lastPayment.amount) : 'No payment yet'}
             />
             <WalletMetricCard
-              accent="border-t-emerald-500"
               icon={PiggyBank}
-              iconClass="bg-emerald-50 text-emerald-600"
               label="Total Lifetime Savings"
-              tint="from-emerald-50/80 to-white"
+              tone="sky"
               value={money(lifetimeSavings)}
             />
           </div>

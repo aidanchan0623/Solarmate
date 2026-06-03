@@ -95,27 +95,36 @@ export default function ProsumerEnergyWallet() {
       >
         {error && <div className="auth-error">{error}</div>}
         {success && <div className="success-message">{success}</div>}
-        <div className="wallet-hero">
-          <div className="wallet-balance-card">
-            <span>Available Wallet Balance</span>
-            <strong>{money(wallet.balance)}</strong>
-            <small>Ready for cashout</small>
-            <button className="mt-6 inline-flex w-fit items-center gap-2 rounded-lg border border-white/40 bg-white px-4 py-2 font-semibold text-teal-800 shadow-sm transition-colors hover:bg-teal-50" onClick={() => setCashoutOpen(true)} type="button">
-              <WalletCards size={17} /> Cash Out
-            </button>
+        <div className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-2">
+          <div className="relative flex w-full flex-col overflow-hidden rounded-[2rem] border border-emerald-400/30 bg-gradient-to-br from-teal-500 via-emerald-500 to-teal-600 p-6 shadow-lg">
+            <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-emerald-300/50 blur-3xl mix-blend-screen" />
+            <div className="pointer-events-none absolute -bottom-20 -left-20 h-48 w-48 rounded-full bg-teal-300/50 blur-3xl mix-blend-screen" />
+
+            <div className="relative flex flex-1 flex-col">
+              <span className="block text-xs font-bold uppercase tracking-widest text-teal-50/90">Available Wallet Balance</span>
+              <strong className="mt-2 text-5xl font-extrabold tracking-tight text-white drop-shadow-sm tabular-nums">{money(wallet.balance)}</strong>
+              <small className="mt-2 text-sm font-semibold text-teal-100/90">Ready for cashout</small>
+              
+              <div className="mt-auto pt-6">
+                <button className="inline-flex w-fit items-center gap-2 rounded-xl border border-white/40 bg-white/20 px-5 py-2.5 font-bold text-white shadow-sm backdrop-blur-md transition-all hover:-translate-y-0.5 hover:bg-white/30 hover:shadow-md" onClick={() => setCashoutOpen(true)} type="button">
+                  <WalletCards size={18} /> Cash Out
+                </button>
+              </div>
+            </div>
           </div>
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between rounded-xl border border-slate-100 border-t-4 border-t-teal-600 bg-white p-4 shadow-sm">
-              <span className="text-sm font-medium text-slate-500">This Month Earnings</span>
-              <strong className="text-xl font-bold text-slate-900">{money(earnings.total_earnings_this_month)}</strong>
+
+          <div className="flex flex-col justify-between gap-3">
+            <div className="group flex items-center justify-between rounded-2xl border-2 border-white bg-gradient-to-br from-white via-teal-50/40 to-teal-100/60 px-5 py-4 shadow-sm backdrop-blur-md transition-all hover:-translate-y-1 hover:border-teal-200 hover:shadow-xl">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-teal-800 opacity-80">This Month Earnings</span>
+              <strong className="text-xl font-bold tabular-nums tracking-tight text-teal-900">{money(earnings.total_earnings_this_month)}</strong>
             </div>
-            <div className="flex items-center justify-between rounded-xl border border-slate-100 border-t-4 border-t-amber-400 bg-white p-4 shadow-sm">
-              <span className="text-sm font-medium text-slate-500">Pending Settlement</span>
-              <strong className="text-xl font-bold text-slate-900">{money(earnings.pending_settlement)}</strong>
+            <div className="group flex items-center justify-between rounded-2xl border-2 border-white bg-gradient-to-br from-white via-amber-50/40 to-amber-100/60 px-5 py-4 shadow-sm backdrop-blur-md transition-all hover:-translate-y-1 hover:border-amber-200 hover:shadow-xl">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-amber-800 opacity-80">Pending Settlement</span>
+              <strong className="text-xl font-bold tabular-nums tracking-tight text-amber-900">{money(earnings.pending_settlement)}</strong>
             </div>
-            <div className="flex items-center justify-between rounded-xl border border-slate-100 border-t-4 border-t-emerald-500 bg-white p-4 shadow-sm">
-              <span className="text-sm font-medium text-slate-500">Total Lifetime Earnings</span>
-              <strong className="text-xl font-bold text-slate-900">{money(lifetimeEarnings || earnings.total_earnings_this_month)}</strong>
+            <div className="group flex items-center justify-between rounded-2xl border-2 border-white bg-gradient-to-br from-white via-emerald-50/40 to-emerald-100/60 px-5 py-4 shadow-sm backdrop-blur-md transition-all hover:-translate-y-1 hover:border-emerald-200 hover:shadow-xl">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-800 opacity-80">Total Lifetime Earnings</span>
+              <strong className="text-xl font-bold tabular-nums tracking-tight text-emerald-900">{money(lifetimeEarnings || earnings.total_earnings_this_month)}</strong>
             </div>
           </div>
         </div>
