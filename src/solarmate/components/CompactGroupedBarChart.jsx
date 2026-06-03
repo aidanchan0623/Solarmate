@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 
 const palette = {
   teal: '#27a1ad',
@@ -21,8 +21,14 @@ export default function CompactGroupedBarChart({
   tooltipItems,
   tooltipExtra,
   barSize,
+  maxBarSize = 48,
+  isLoading = false,
+  minDataPoints = 1,
+  className = '',
+  useGradientBars = false,
   emptyMessage = 'No chart data yet.'
 }) {
+  const chartId = useId().replace(/:/g, '');
   const wrapperRef = useRef(null);
   const [tooltip, setTooltip] = useState(null);
   const chartData = Array.isArray(data) ? data : [];
@@ -37,9 +43,20 @@ export default function CompactGroupedBarChart({
   const groupWidth = chartData.length ? chartWidth / chartData.length : chartWidth;
   const barGap = 3;
   const preferredBarSize = Number(barSize) || 0;
+  const cappedBarSize = Number(maxBarSize) || 48;
   const barWidth = stacked
-    ? (preferredBarSize ? Math.min(preferredBarSize, Math.max(groupWidth - 34, 16)) : Math.max(groupWidth - 12, 16))
-    : (preferredBarSize ? Math.min(preferredBarSize, Math.max((groupWidth - 6 - barGap * (series.length - 1)) / series.length, 6)) : Math.max((groupWidth - 6 - barGap * (series.length - 1)) / series.length, 6));
+    ? Math.min(
+        cappedBarSize,
+        preferredBarSize
+          ? Math.min(preferredBarSize, Math.max(groupWidth - 34, 16))
+          : Math.max(groupWidth - 12, 16)
+      )
+    : Math.min(
+        cappedBarSize,
+        preferredBarSize
+          ? Math.min(preferredBarSize, Math.max((groupWidth - 6 - barGap * (series.length - 1)) / series.length, 6))
+          : Math.max((groupWidth - 6 - barGap * (series.length - 1)) / series.length, 6)
+      );
 
   function y(value) {
     return padding.top + chartHeight - (Number(value) / maxValue) * chartHeight;
@@ -86,9 +103,10 @@ export default function CompactGroupedBarChart({
         ...(tooltipExtra ? tooltipExtra(tooltip.item) : [])
       ]
     : [];
+  const gradientIdFor = (key) => `barGradient-${chartId}-${key}`;
 
   return (
-    <div className="chart-panel compact-chart interactive-chart" ref={wrapperRef}>
+    <div className={`chart-panel compact-chart interactive-chart ${className}`} ref={wrapperRef}>
       <div className="chart-legend">
         {series.map((entry) => (
           <span key={entry.key}>
@@ -97,10 +115,28 @@ export default function CompactGroupedBarChart({
           </span>
         ))}
       </div>
-      {chartData.length === 0 ? (
+      {isLoading || chartData.length < minDataPoints ? (
+        <div className="w-full h-[300px] flex items-center justify-center text-slate-500 animate-pulse bg-slate-800/20 rounded-xl">
+          Loading revenue data...
+        </div>
+      ) : chartData.length === 0 ? (
         <div className="empty-state">{emptyMessage}</div>
       ) : (
         <svg className="grouped-bar-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Grouped bar chart">
+          {useGradientBars && (
+            <defs>
+              {series.map((entry) => {
+                const color = palette[entry.color] || entry.color;
+                return (
+                  <linearGradient id={gradientIdFor(entry.key)} key={entry.key} x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor={color} stopOpacity="1" />
+                    <stop offset="58%" stopColor={color} stopOpacity="0.88" />
+                    <stop offset="100%" stopColor="#0f766e" stopOpacity="0.72" />
+                  </linearGradient>
+                );
+              })}
+            </defs>
+          )}
           {[0, 0.5, 1].map((line) => {
             const gridY = padding.top + chartHeight * line;
             const label = Math.round(maxValue * (1 - line));
@@ -114,7 +150,8 @@ export default function CompactGroupedBarChart({
 
           {chartData.map((item, index) => {
             const groupStart = padding.left + index * groupWidth;
-            const groupX = groupStart + 1;
+            const totalGroupBarWidth = series.length * barWidth + barGap * (series.length - 1);
+            const groupX = groupStart + Math.max((groupWidth - totalGroupBarWidth) / 2, 1);
             const stackedX = groupStart + Math.max((groupWidth - barWidth) / 2, 1);
             let stackedOffset = 0;
             return (
@@ -127,7 +164,7 @@ export default function CompactGroupedBarChart({
                   stackedOffset += barHeight;
                   return (
                     <rect
-                      fill={palette[entry.color] || entry.color}
+                      fill={useGradientBars ? `url(#${gradientIdFor(entry.key)})` : palette[entry.color] || entry.color}
                       height={barHeight}
                       key={entry.key}
                       className="chart-bar"
@@ -145,9 +182,8 @@ export default function CompactGroupedBarChart({
                       width={barWidth}
                       x={x}
                       y={stacked ? stackedY : y(value)}
-                    >
-                      <title>{entry.label}: {valuePrefix}{formatValue(value)}{valueSuffix}</title>
-                    </rect>
+                      style={useGradientBars ? { filter: 'drop-shadow(0 0 10px rgba(45,212,191,0.24))' } : undefined}
+                    />
                   );
                 })}
                 <text x={groupStart + groupWidth / 2} y={height - 14} textAnchor="middle">

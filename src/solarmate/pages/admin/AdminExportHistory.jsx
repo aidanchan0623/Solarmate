@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Area,
   AreaChart,
@@ -18,6 +18,34 @@ import { getAdminMonthlyExportRecords } from '../../api/client';
 import DashboardCard from '../../components/DashboardCard';
 
 const chartPanelClass = 'rounded-2xl border border-white/10 bg-slate-900/50 p-6 shadow-[0_24px_70px_-48px_rgba(0,0,0,0.95)] backdrop-blur-xl';
+const MONTHLY_EXPORT_CACHE_KEY = 'solarmate-admin-monthly-export-records';
+
+let monthlyExportRecordsCache = null;
+
+function readMonthlyExportCache() {
+  if (monthlyExportRecordsCache?.length) return monthlyExportRecordsCache;
+  if (typeof window === 'undefined') return [];
+
+  try {
+    const cached = JSON.parse(window.sessionStorage.getItem(MONTHLY_EXPORT_CACHE_KEY) || '[]');
+    monthlyExportRecordsCache = Array.isArray(cached) ? cached : [];
+    return monthlyExportRecordsCache;
+  } catch {
+    return [];
+  }
+}
+
+function writeMonthlyExportCache(records) {
+  if (!Array.isArray(records)) return;
+  monthlyExportRecordsCache = records;
+
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.setItem(MONTHLY_EXPORT_CACHE_KEY, JSON.stringify(records));
+  } catch {
+    // Session storage can fail in private modes; memory cache still keeps this tab fast.
+  }
+}
 
 function formatKwh(value) {
   return `${Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 1 })} kWh`;
@@ -129,21 +157,114 @@ const allocationLegendItems = [
   { color: '#cbd5e1', label: 'Unmatched Supply' }
 ];
 
+const exportSummaryThemes = {
+  blue: {
+    card: 'from-sky-500/14 via-slate-900/92 to-slate-950/95 border-sky-400/20',
+    accent: 'bg-sky-400 shadow-[0_0_22px_rgba(56,189,248,0.34)]',
+    glow: 'hover:border-sky-300/45 hover:shadow-[0_0_34px_rgba(56,189,248,0.22)]',
+    value: 'text-sky-50'
+  },
+  teal: {
+    card: 'from-teal-500/14 via-slate-900/92 to-slate-950/95 border-teal-400/20',
+    accent: 'bg-teal-400 shadow-[0_0_22px_rgba(45,212,191,0.34)]',
+    glow: 'hover:border-teal-300/45 hover:shadow-[0_0_34px_rgba(45,212,191,0.22)]',
+    value: 'text-teal-50'
+  },
+  amber: {
+    card: 'from-amber-500/14 via-slate-900/92 to-slate-950/95 border-amber-400/20',
+    accent: 'bg-amber-400 shadow-[0_0_22px_rgba(251,191,36,0.3)]',
+    glow: 'hover:border-amber-300/45 hover:shadow-[0_0_34px_rgba(251,191,36,0.2)]',
+    value: 'text-amber-50'
+  },
+  emerald: {
+    card: 'from-emerald-500/14 via-slate-900/92 to-slate-950/95 border-emerald-400/20',
+    accent: 'bg-emerald-400 shadow-[0_0_22px_rgba(52,211,153,0.34)]',
+    glow: 'hover:border-emerald-300/45 hover:shadow-[0_0_34px_rgba(52,211,153,0.22)]',
+    value: 'text-emerald-50'
+  }
+};
+
+function ExportSummaryCard({ label, value, detail, tone = 'teal' }) {
+  const theme = exportSummaryThemes[tone] || exportSummaryThemes.teal;
+
+  return (
+    <div className={`group relative overflow-hidden rounded-2xl border bg-gradient-to-br p-6 pt-7 shadow-[0_18px_48px_-38px_rgba(0,0,0,0.95)] transition-all duration-300 ease-out hover:-translate-y-1 ${theme.card} ${theme.glow}`}>
+      <div className={`absolute left-5 right-5 top-4 h-1 rounded-full ${theme.accent}`} />
+      <div className="pointer-events-none absolute -right-12 -top-14 h-28 w-28 rounded-full bg-white/5 blur-3xl transition-opacity duration-300 group-hover:opacity-90" />
+      <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.08),_transparent_42%)]" />
+      <p className="mt-2 text-sm font-semibold text-slate-400">{label}</p>
+      <h3 className={`mt-3 text-2xl font-bold tracking-tight tabular-nums ${theme.value}`}>{value}</h3>
+      <p className="mt-3 text-xs font-medium text-slate-500">{detail}</p>
+    </div>
+  );
+}
+
+function SummarySkeleton() {
+  return (
+    <div className="mt-8 grid w-full grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
+      {[0, 1, 2, 3].map((item) => (
+        <div
+          className="h-40 animate-pulse rounded-2xl border border-white/10 bg-slate-900/60 p-6"
+          key={item}
+        >
+          <div className="h-1 w-full rounded-full bg-slate-700/70" />
+          <div className="mt-7 h-4 w-28 rounded bg-slate-700/70" />
+          <div className="mt-5 h-8 w-40 rounded bg-slate-700/60" />
+          <div className="mt-4 h-3 w-32 rounded bg-slate-800" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ChartSkeleton({ className = 'col-span-12', height = 'h-[340px]' }) {
+  return (
+    <div className={`${chartPanelClass} ${className}`}>
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div className="grid gap-3">
+          <div className="h-3 w-32 animate-pulse rounded bg-teal-300/20" />
+          <div className="h-6 w-56 animate-pulse rounded bg-slate-700/60" />
+        </div>
+        <div className="h-7 w-24 animate-pulse rounded-full bg-slate-800" />
+      </div>
+      <div className={`${height} overflow-hidden rounded-2xl border border-white/5 bg-slate-950/35 p-5`}>
+        <div className="flex h-full items-end gap-5">
+          {[36, 54, 44, 72, 58, 82].map((bar, index) => (
+            <div className="flex flex-1 flex-col justify-end" key={`${bar}-${index}`}>
+              <div
+                className="animate-pulse rounded-t-xl bg-gradient-to-t from-teal-500/20 to-teal-300/40"
+                style={{ height: `${bar}%` }}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminExportHistory() {
-  const [rows, setRows] = useState([]);
+  const [rows, setRows] = useState(() => readMonthlyExportCache());
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(() => readMonthlyExportCache().length === 0);
 
   useEffect(() => {
     let isMounted = true;
+    if (!rows.length) setLoading(true);
+
     getAdminMonthlyExportRecords()
       .then((data) => {
         if (!isMounted) return;
         setRows(data);
+        writeMonthlyExportCache(data);
         setError('');
       })
       .catch((err) => {
         if (!isMounted) return;
         setError(err.message || 'Unable to load monthly export records from backend.');
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
       });
 
     return () => {
@@ -152,7 +273,7 @@ export default function AdminExportHistory() {
   }, []);
 
   const latest = rows[rows.length - 1];
-  const chartRows = rows.map((row) => {
+  const chartRows = useMemo(() => rows.map((row) => {
     const prosumerSupply = Number(row.prosumer_supply_kwh) || 0;
     const soldToSolarMate = Number(row.sold_to_solarmate_kwh) || 0;
     const solarAtapExcess = Number(row.solar_atap_excess_kwh) || 0;
@@ -175,53 +296,55 @@ export default function AdminExportHistory() {
       payout: Number(row.total_prosumer_payout) || 0,
       status: row.status || 'unknown'
     };
-  });
+  }), [rows]);
+  const hasRecords = chartRows.length > 0;
 
   return (
     <div className="page-stack">
       <DashboardCard eyebrow="Monthly export records" title="Platform export and matching records">
-        <p className="microcopy">
+        <p className="microcopy max-w-5xl">
           Platform monthly records are aggregated from prosumer export and consumer demand data.
           Matched energy is calculated as min(prosumer supply, consumer demand).
         </p>
         {error && <div className="auth-error">{error}</div>}
+        {loading && !latest && <SummarySkeleton />}
         {latest && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 w-full">
-            
-            {/* Card 1: Latest Month (Blue Accent) */}
-            <div className="flex flex-col p-5 bg-slate-900/80 border-x border-b border-slate-800 border-t-4 border-t-blue-500 rounded-xl shadow-lg">
-              <p className="text-sm font-medium text-slate-400 mb-1">Latest month</p>
-              <h3 className="text-2xl font-bold text-slate-100 tracking-tight">{latest.month}</h3>
-              <p className="text-xs text-slate-500 mt-2">Current billing cycle</p>
-            </div>
-
-            {/* Card 2: Matched Energy (Teal Accent) */}
-            <div className="flex flex-col p-5 bg-slate-900/80 border-x border-b border-slate-800 border-t-4 border-t-teal-400 rounded-xl shadow-lg relative overflow-hidden">
-              {/* Optional subtle glow matching the reference */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-8 bg-teal-500/10 blur-xl rounded-full"></div>
-              <p className="text-sm font-medium text-slate-400 mb-1 relative z-10">Matched energy</p>
-              <h3 className="text-2xl font-bold text-slate-100 tracking-tight relative z-10">{latest.matched_energy_kwh.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kWh</h3>
-              <p className="text-xs text-slate-500 mt-2 relative z-10">min(supply, demand)</p>
-            </div>
-
-            {/* Card 3: Unmatched Supply (Orange Accent) */}
-            <div className="flex flex-col p-5 bg-slate-900/80 border-x border-b border-slate-800 border-t-4 border-t-orange-500 rounded-xl shadow-lg">
-              <p className="text-sm font-medium text-slate-400 mb-1">Unmatched supply</p>
-              <h3 className="text-2xl font-bold text-slate-100 tracking-tight">{latest.unmatched_supply_kwh.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kWh</h3>
-              <p className="text-xs text-slate-500 mt-2">Remaining prosumer supply</p>
-            </div>
-
-            {/* Card 4: Prosumer Payout (Emerald Accent) */}
-            <div className="flex flex-col p-5 bg-slate-900/80 border-x border-b border-slate-800 border-t-4 border-t-emerald-500 rounded-xl shadow-lg">
-              <p className="text-sm font-medium text-slate-400 mb-1">Prosumer payout</p>
-              <h3 className="text-2xl font-bold text-slate-100 tracking-tight">RM{latest.total_prosumer_payout.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
-              <p className="text-xs text-slate-500 mt-2">Total credited payout</p>
-            </div>
-
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-1 w-full">
+            <ExportSummaryCard
+              detail="Current billing cycle"
+              label="Latest month"
+              tone="blue"
+              value={latest.month}
+            />
+            <ExportSummaryCard
+              detail="min(supply, demand)"
+              label="Matched energy"
+              tone="teal"
+              value={`${latest.matched_energy_kwh.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kWh`}
+            />
+            <ExportSummaryCard
+              detail="Remaining prosumer supply"
+              label="Unmatched supply"
+              tone="amber"
+              value={`${latest.unmatched_supply_kwh.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kWh`}
+            />
+            <ExportSummaryCard
+              detail="Total credited payout"
+              label="Prosumer payout"
+              tone="emerald"
+              value={`RM${latest.total_prosumer_payout.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            />
           </div>
         )}
       </DashboardCard>
 
+      {!hasRecords ? (
+        <section className="grid grid-cols-12 gap-6">
+          <ChartSkeleton className="col-span-12 xl:col-span-8" />
+          <ChartSkeleton className="col-span-12 xl:col-span-4" />
+          <ChartSkeleton className="col-span-12" height="h-[390px]" />
+        </section>
+      ) : (
       <section className="grid grid-cols-12 gap-6">
         <div className={`${chartPanelClass} col-span-12 xl:col-span-8`}>
           <ChartHeader eyebrow="Supply vs demand trend" title="Supply, Demand & Matched Energy">
@@ -450,6 +573,7 @@ export default function AdminExportHistory() {
           </p>
         </div>
       </section>
+      )}
     </div>
   );
 }

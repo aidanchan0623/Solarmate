@@ -19,6 +19,34 @@ const columns = [
   { key: 'value', label: 'Value' },
   { key: 'note', label: 'Notes' }
 ];
+const SUPPLY_DEMAND_CACHE_KEY = 'solarmate-admin-supply-demand-overview';
+
+let supplyDemandCache = null;
+
+function readSupplyDemandCache() {
+  if (supplyDemandCache) return supplyDemandCache;
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const cached = JSON.parse(window.sessionStorage.getItem(SUPPLY_DEMAND_CACHE_KEY) || 'null');
+    supplyDemandCache = cached;
+    return cached;
+  } catch {
+    return null;
+  }
+}
+
+function writeSupplyDemandCache(data) {
+  if (!data) return;
+  supplyDemandCache = data;
+
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.setItem(SUPPLY_DEMAND_CACHE_KEY, JSON.stringify(data));
+  } catch {
+    // Memory cache still prevents repeat flicker inside this tab.
+  }
+}
 
 function fallbackOverview() {
   return {
@@ -252,20 +280,55 @@ function PlatformEnergyChart({ data }) {
   );
 }
 
+function SupplyDemandSkeleton() {
+  return (
+    <div className="grid gap-6">
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+        {[0, 1, 2, 3, 4].map((item) => (
+          <div
+            className="min-h-[154px] animate-pulse rounded-2xl border border-white/10 bg-slate-900/60 p-6"
+            key={item}
+          >
+            <div className="h-1 w-full rounded-full bg-slate-700/80" />
+            <div className="mt-6 h-10 w-28 rounded bg-slate-800" />
+            <div className="mt-8 h-7 w-36 rounded bg-slate-700/70" />
+          </div>
+        ))}
+      </section>
+      <div className="h-[430px] animate-pulse rounded-2xl border border-white/10 bg-slate-900/60 p-6">
+        <div className="h-4 w-32 rounded bg-teal-300/20" />
+        <div className="mt-3 h-6 w-56 rounded bg-slate-700/70" />
+        <div className="mt-10 h-[300px] rounded-xl bg-slate-950/35" />
+      </div>
+    </div>
+  );
+}
+
 export default function AdminSupplyDemand() {
-  const [overview, setOverview] = useState(fallbackOverview);
+  const [overview, setOverview] = useState(() => readSupplyDemandCache());
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(() => !readSupplyDemandCache());
+  const visibleOverview = overview;
   const matchingRate =
-    overview.matching_rate ?? calculateMatchedRate(overview.matched_green_energy, overview.total_export_commitment);
+    visibleOverview?.matching_rate ?? calculateMatchedRate(visibleOverview?.matched_green_energy, visibleOverview?.total_export_commitment);
 
   useEffect(() => {
     let cancelled = false;
     async function loadOverview() {
+      if (!overview) setIsLoading(true);
       try {
         const data = await getAdminOverview();
-        if (!cancelled) setOverview(data);
+        if (!cancelled) {
+          setOverview(data);
+          writeSupplyDemandCache(data);
+        }
       } catch (err) {
-        if (!cancelled) setError(err.message);
+        if (!cancelled) {
+          setError(err.message);
+          setOverview(fallbackOverview());
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
     }
     loadOverview();
@@ -274,20 +337,26 @@ export default function AdminSupplyDemand() {
     };
   }, []);
 
+  if (isLoading && !visibleOverview) {
+    return <SupplyDemandSkeleton />;
+  }
+
+  if (!visibleOverview) return null;
+
   const rows = [
     {
       label: 'Prosumer supply',
-      value: `${overview.total_export_commitment.toLocaleString()} kWh`,
+      value: `${visibleOverview.total_export_commitment.toLocaleString()} kWh`,
       note: 'Latest monthly export supply'
     },
     {
       label: 'Consumer demand',
-      value: `${overview.total_consumer_demand.toLocaleString()} kWh`,
+      value: `${visibleOverview.total_consumer_demand.toLocaleString()} kWh`,
       note: 'Latest green-credit demand'
     },
     {
       label: 'Matched energy',
-      value: `${overview.matched_green_energy.toLocaleString()} kWh`,
+      value: `${visibleOverview.matched_green_energy.toLocaleString()} kWh`,
       note: 'min(supply, demand)'
     },
     {
@@ -297,12 +366,12 @@ export default function AdminSupplyDemand() {
     },
     {
       label: 'Unmatched supply',
-      value: `${overview.unmatched_supply.toLocaleString()} kWh`,
+      value: `${visibleOverview.unmatched_supply.toLocaleString()} kWh`,
       note: 'Available supply after matching'
     },
     {
       label: 'Unmatched demand',
-      value: `${overview.unmatched_demand.toLocaleString()} kWh`,
+      value: `${visibleOverview.unmatched_demand.toLocaleString()} kWh`,
       note: 'Demand not covered by SolarMate supply'
     }
   ];
@@ -318,9 +387,9 @@ export default function AdminSupplyDemand() {
 
   const chartData = trendMultipliers.map((item) => ({
     label: item.label,
-    exported: overview.total_export_commitment * item.exported,
-    demand: overview.total_consumer_demand * item.demand,
-    matched: overview.matched_green_energy * item.matched
+    exported: visibleOverview.total_export_commitment * item.exported,
+    demand: visibleOverview.total_consumer_demand * item.demand,
+    matched: visibleOverview.matched_green_energy * item.matched
   }));
 
   return (
@@ -333,35 +402,35 @@ export default function AdminSupplyDemand() {
           themeKey="supply"
           title="Prosumer Supply"
           trend="+4.2%"
-          value={formatKwh(overview.total_export_commitment)}
+          value={formatKwh(visibleOverview.total_export_commitment)}
         />
         <SummaryCard
           icon={Activity}
           themeKey="demand"
           title="Consumer Demand"
           trend="+3.8%"
-          value={formatKwh(overview.total_consumer_demand)}
+          value={formatKwh(visibleOverview.total_consumer_demand)}
         />
         <SummaryCard
           icon={BatteryCharging}
           themeKey="matched"
           title="Matched Energy"
           trend="+5.1%"
-          value={formatKwh(overview.matched_green_energy)}
+          value={formatKwh(visibleOverview.matched_green_energy)}
         />
         <SummaryCard
           icon={ArrowDownUp}
           themeKey="supplyGap"
           title="Unmatched Supply"
           trend="+1.4%"
-          value={formatKwh(overview.unmatched_supply)}
+          value={formatKwh(visibleOverview.unmatched_supply)}
         />
         <SummaryCard
           icon={CircleGauge}
           themeKey="demandGap"
           title="Unmatched Demand"
           trend={`${matchingRate.toFixed(1)}%`}
-          value={formatKwh(overview.unmatched_demand)}
+          value={formatKwh(visibleOverview.unmatched_demand)}
         />
       </section>
 

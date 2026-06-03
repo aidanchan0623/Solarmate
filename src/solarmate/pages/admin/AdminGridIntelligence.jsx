@@ -41,6 +41,31 @@ function riskChartColor(risk) {
   return 'gold';
 }
 
+function riskTheme(risk) {
+  if (risk === 'Low') {
+    return {
+      panel: 'from-emerald-500/18 via-slate-900/80 to-teal-950/45 border-emerald-400/25 shadow-[0_0_42px_rgba(16,185,129,0.10)]',
+      icon: 'text-emerald-300',
+      value: 'text-emerald-200',
+      divider: 'border-emerald-300/15'
+    };
+  }
+  if (risk === 'Surplus Risk') {
+    return {
+      panel: 'from-cyan-500/18 via-slate-900/80 to-teal-950/45 border-cyan-400/25 shadow-[0_0_42px_rgba(34,211,238,0.10)]',
+      icon: 'text-cyan-300',
+      value: 'text-cyan-100',
+      divider: 'border-cyan-300/15'
+    };
+  }
+  return {
+    panel: 'from-rose-500/20 via-slate-900/82 to-amber-950/35 border-rose-400/30 shadow-[0_0_48px_rgba(251,113,133,0.12)]',
+    icon: 'text-rose-300',
+    value: 'text-rose-100',
+    divider: 'border-rose-300/15'
+  };
+}
+
 export default function AdminGridIntelligence() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -99,6 +124,7 @@ export default function AdminGridIntelligence() {
   }
 
   const { current_hour: currentHour, summary } = data;
+  const activeRiskTheme = riskTheme(summary.risk_level);
 
   return (
     <div className="page-stack">
@@ -117,21 +143,18 @@ export default function AdminGridIntelligence() {
         {error && <div className="auth-error">Unable to refresh advisory: {error}</div>}
         <div className="flex flex-col gap-6 mt-4">
           {/* TIER 1: THE HERO STATUS PANEL */}
-          <div className={`flex flex-col md:flex-row items-start md:items-center p-6 rounded-xl w-full ${
-            summary.risk_level === 'High' 
-              ? 'bg-red-950/20 border border-red-500/30' 
-              : 'bg-slate-900/50 border border-white/10'
-          }`}>
-            <div className="flex flex-col pr-6 md:border-r border-white/10 shrink-0">
+          <div className={`relative overflow-hidden flex flex-col md:flex-row items-start md:items-center p-6 rounded-2xl w-full border bg-gradient-to-br ${activeRiskTheme.panel}`}>
+            <div className="pointer-events-none absolute -right-20 -top-20 h-44 w-44 rounded-full bg-white/5 blur-3xl" />
+            <div className={`relative flex flex-col pr-6 md:border-r shrink-0 ${activeRiskTheme.divider}`}>
               <span className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-1">Grid Risk Level</span>
               <div className="flex items-center gap-2">
-                <TriangleAlert className={summary.risk_level === 'High' ? 'text-red-400' : 'text-slate-300'} size={28} />
-                <strong className={`text-3xl font-bold ${summary.risk_level === 'High' ? 'text-red-400' : 'text-slate-100'}`}>
+                <TriangleAlert className={activeRiskTheme.icon} size={28} />
+                <strong className={`text-3xl font-bold ${activeRiskTheme.value}`}>
                   {summary.risk_level}
                 </strong>
               </div>
             </div>
-            <div className="flex flex-col mt-4 md:mt-0 md:pl-6 flex-1">
+            <div className="relative flex flex-col mt-4 md:mt-0 md:pl-6 flex-1">
               <span className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-2">
                 <ShieldAlert size={16} /> Recommendation
               </span>
@@ -141,49 +164,51 @@ export default function AdminGridIntelligence() {
 
           {/* TIER 2: PRIMARY ENERGY METRICS */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="flex flex-col p-6 rounded-xl bg-slate-900/50 border border-white/10">
-              <span className="text-slate-400 text-sm font-semibold uppercase tracking-wider flex items-center gap-2 mb-2">
+            <div className="relative overflow-hidden flex flex-col p-6 rounded-2xl bg-gradient-to-br from-amber-300/16 via-slate-900/60 to-slate-950 border border-amber-300/20 shadow-[0_0_38px_rgba(251,191,36,0.08)]">
+              <div className="pointer-events-none absolute right-0 top-0 h-28 w-28 rounded-full bg-amber-300/10 blur-3xl" />
+              <span className="relative text-amber-100 text-sm font-semibold uppercase tracking-wider flex items-center gap-2 mb-2">
                 <CloudSun size={16} /> Forecasted Solar Supply
               </span>
-              <strong className="text-4xl font-bold text-slate-100 mb-1">{moneylessKwh(summary.forecasted_solar_supply_kwh)}</strong>
-              <small className="text-slate-500">Base: {moneylessKwh(summary.base_prosumer_supply_kwh)}</small>
+              <strong className="relative text-4xl font-bold text-white mb-1">{moneylessKwh(summary.forecasted_solar_supply_kwh)}</strong>
+              <small className="relative text-amber-100/60">Base: {moneylessKwh(summary.base_prosumer_supply_kwh)}</small>
             </div>
-            <div className="flex flex-col p-6 rounded-xl bg-slate-900/50 border border-white/10">
-              <span className="text-slate-400 text-sm font-semibold uppercase tracking-wider mb-2">
+            <div className="relative overflow-hidden flex flex-col p-6 rounded-2xl bg-gradient-to-br from-sky-400/16 via-slate-900/60 to-slate-950 border border-sky-300/20 shadow-[0_0_38px_rgba(56,189,248,0.08)]">
+              <div className="pointer-events-none absolute right-0 top-0 h-28 w-28 rounded-full bg-sky-300/10 blur-3xl" />
+              <span className="relative text-sky-100 text-sm font-semibold uppercase tracking-wider mb-2">
                 Required TNB Fallback
               </span>
-              <strong className="text-4xl font-bold text-slate-100 mb-1">{moneylessKwh(summary.recommended_tnb_fallback_kwh)}</strong>
-              <small className="text-slate-500">Advisory fallback supply</small>
+              <strong className="relative text-4xl font-bold text-white mb-1">{moneylessKwh(summary.recommended_tnb_fallback_kwh)}</strong>
+              <small className="relative text-sky-100/60">Advisory fallback supply</small>
             </div>
           </div>
 
           {/* TIER 3: ENVIRONMENTAL TELEMETRY */}
-          <div className="flex flex-col p-4 rounded-xl bg-slate-900/30 border border-white/5">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3 px-2">Environmental Factors</span>
+          <div className="flex flex-col p-4 rounded-2xl bg-gradient-to-r from-slate-900/50 via-cyan-950/18 to-slate-900/50 border border-white/10">
+            <span className="text-xs font-semibold uppercase tracking-wider text-teal-200 mb-3 px-2">Environmental Factors</span>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div className="flex flex-col items-center justify-center text-center px-2">
-                <CloudRain className="text-slate-500 mb-1" size={20} />
-                <strong className="text-slate-300 text-sm">{wholePercent(currentHour.rain_probability)}</strong>
+                <CloudRain className="text-sky-300 mb-1" size={20} />
+                <strong className="text-sky-100 text-sm">{wholePercent(currentHour.rain_probability)}</strong>
                 <span className="text-slate-500 text-xs">Rain Prob</span>
               </div>
               <div className="flex flex-col items-center justify-center text-center px-2 border-white/5 md:border-l">
-                <Sun className="text-slate-500 mb-1" size={20} />
-                <strong className="text-slate-300 text-sm">{percent(currentHour.solar_factor * 100)}</strong>
+                <Sun className="text-amber-300 mb-1" size={20} />
+                <strong className="text-amber-100 text-sm">{percent(currentHour.solar_factor * 100)}</strong>
                 <span className="text-slate-500 text-xs">Solar Potential</span>
               </div>
               <div className="flex flex-col items-center justify-center text-center px-2 border-white/5 md:border-l">
-                <Sun className="text-slate-500 mb-1" size={20} />
-                <strong className="text-slate-300 text-sm">{currentHour.shortwave_radiation.toLocaleString()} W/m²</strong>
+                <Sun className="text-yellow-300 mb-1" size={20} />
+                <strong className="text-yellow-100 text-sm">{currentHour.shortwave_radiation.toLocaleString()} W/m²</strong>
                 <span className="text-slate-500 text-xs">Shortwave Rad</span>
               </div>
               <div className="flex flex-col items-center justify-center text-center px-2 border-white/5 md:border-l">
-                <Cloud className="text-slate-500 mb-1" size={20} />
-                <strong className="text-slate-300 text-sm">{wholePercent(currentHour.cloud_cover)}</strong>
+                <Cloud className="text-cyan-300 mb-1" size={20} />
+                <strong className="text-cyan-100 text-sm">{wholePercent(currentHour.cloud_cover)}</strong>
                 <span className="text-slate-500 text-xs">Cloud Cover</span>
               </div>
               <div className="flex flex-col items-center justify-center text-center px-2 border-white/5 md:border-l">
-                <Droplets className="text-slate-500 mb-1" size={20} />
-                <strong className="text-slate-300 text-sm">{currentHour.rain_mm.toFixed(2)} mm</strong>
+                <Droplets className="text-blue-300 mb-1" size={20} />
+                <strong className="text-blue-100 text-sm">{currentHour.rain_mm.toFixed(2)} mm</strong>
                 <span className="text-slate-500 text-xs">Rain Amount</span>
               </div>
             </div>
