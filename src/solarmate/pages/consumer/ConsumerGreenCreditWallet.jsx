@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { CheckCircle2, CreditCard, Download, Leaf, PiggyBank, PlusCircle, WalletCards, Zap } from 'lucide-react';
+import { CheckCircle2, CreditCard, Download, PiggyBank, PlusCircle, Receipt, WalletCards } from 'lucide-react';
 import {
   getConsumerBilling,
+  getConsumerMonthlyUsageHistory,
   getConsumerStatement,
   getWallet,
   getWalletTransactions,
@@ -13,6 +14,7 @@ import Modal from '../../components/Modal';
 import SimulationInput from '../../components/SimulationInput';
 import StatementModal from '../../components/StatementModal';
 import StatusBadge from '../../components/StatusBadge';
+import { TNB_PEAK_TOTAL_RATE } from '../../utils/calculations';
 
 function money(value) {
   return `RM${Number(value || 0).toFixed(2)}`;
@@ -26,13 +28,14 @@ function malaysiaDateTime(value) {
   }).format(new Date(value));
 }
 
-function WalletMetricCard({ label, value, className = '', accent = 'border-t-teal-500', icon: Icon, iconClass = 'bg-teal-50 text-teal-600', tint = 'from-white to-slate-50' }) {
+function WalletMetricCard({ label, value, detail, className = '', accent = 'border-t-teal-500', icon: Icon, iconClass = 'bg-teal-50 text-teal-600', tint = 'from-white to-slate-50' }) {
   return (
     <div className={`flex flex-col rounded-xl border border-slate-200 bg-gradient-to-br ${tint} p-4 border-t-4 shadow-[0_14px_34px_-30px_rgba(15,23,42,0.55)] ${accent} ${className}`}>
       <div className="flex items-start justify-between gap-4">
         <div>
           <span className="text-slate-500 text-sm font-medium">{label}</span>
           <strong className="mt-2 block text-slate-900 font-bold text-xl tabular-nums">{value}</strong>
+          {detail && <span className="mt-1 block text-sm font-medium text-slate-500">{detail}</span>}
         </div>
         {Icon && (
           <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-sm ${iconClass}`}>
@@ -95,6 +98,7 @@ export default function ConsumerGreenCreditWallet({ consumer }) {
   const [wallet, setWallet] = useState(null);
   const [bill, setBill] = useState(null);
   const [transactions, setTransactions] = useState([]);
+  const [monthlyRows, setMonthlyRows] = useState([]);
   const [topupOpen, setTopupOpen] = useState(false);
   const [topupAmount, setTopupAmount] = useState(100);
   const [statement, setStatement] = useState(null);
@@ -103,14 +107,16 @@ export default function ConsumerGreenCreditWallet({ consumer }) {
   const [error, setError] = useState('');
 
   async function loadWallet() {
-    const [walletData, billData, transactionData] = await Promise.all([
+    const [walletData, billData, transactionData, monthlyData] = await Promise.all([
       getWallet(),
       getConsumerBilling(),
-      getWalletTransactions()
+      getWalletTransactions(),
+      getConsumerMonthlyUsageHistory()
     ]);
     setWallet(walletData);
     setBill(billData);
     setTransactions(transactionData);
+    setMonthlyRows(monthlyData);
   }
 
   useEffect(() => {
@@ -190,6 +196,15 @@ export default function ConsumerGreenCreditWallet({ consumer }) {
   const walletReady = wallet.balance >= bill.total_bill;
   const walletTone = isPaid ? 'success' : walletReady ? 'success' : 'warning';
   const walletLabel = isPaid ? 'Bill paid' : walletReady ? 'Ready to pay' : 'Top up needed';
+  const lastPayment = transactions.find((row) => {
+    const type = String(row.transaction_type || '').toLowerCase();
+    const status = String(row.status || '').toLowerCase();
+    return type.includes('bill') && ['paid', 'successful', 'settled'].includes(status);
+  });
+  const lifetimeSavings = monthlyRows.reduce((sum, row) => {
+    const tnbOnlyBill = Number(row.total_usage_kwh || 0) * TNB_PEAK_TOTAL_RATE;
+    return sum + Math.max(tnbOnlyBill - Number(row.total_bill || 0), 0);
+  }, 0);
 
   return (
     <div className="page-stack">
@@ -258,31 +273,23 @@ export default function ConsumerGreenCreditWallet({ consumer }) {
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <WalletMetricCard
-              accent="border-t-teal-500"
-              icon={Leaf}
-              iconClass="bg-teal-50 text-teal-600"
-              label="Green Credit"
-              tint="from-teal-50/80 to-white"
-              value={`${bill.green_credit_kwh.toLocaleString()} kWh`}
+              accent="border-t-blue-500"
+              detail={lastPayment ? `Paid on ${malaysiaDateTime(lastPayment.created_at)}` : 'No completed bill payment found'}
+              icon={Receipt}
+              iconClass="bg-blue-50 text-blue-600"
+              label="Last Payment"
+              tint="from-blue-50/80 to-white"
+              value={lastPayment ? money(lastPayment.amount) : 'No payment yet'}
             />
             <WalletMetricCard
-              accent="border-t-sky-500"
-              icon={Zap}
-              iconClass="bg-sky-50 text-sky-600"
-              label="TNB Import"
-              tint="from-sky-50/80 to-white"
-              value={`${bill.tnb_import_kwh.toLocaleString()} kWh`}
-            />
-            <WalletMetricCard
-              accent="border-t-teal-500"
-              className="md:col-span-2"
+              accent="border-t-emerald-500"
               icon={PiggyBank}
               iconClass="bg-emerald-50 text-emerald-600"
-              label="Percentage Saved"
+              label="Total Lifetime Savings"
               tint="from-emerald-50/80 to-white"
-              value={`${bill.actual_saving_percentage.toFixed(2)}%`}
+              value={money(lifetimeSavings)}
             />
           </div>
         </div>

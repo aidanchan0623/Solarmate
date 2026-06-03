@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Download } from 'lucide-react';
+import { Award, Download, Wallet } from 'lucide-react';
 import {
   getLatestMeterReading,
   getProsumerDailyExport,
@@ -36,6 +36,118 @@ function kwh(value) {
 
 function roundKwh(value) {
   return Math.round((Number(value) || 0) * 100) / 100;
+}
+
+const insightStyles = {
+  amber: {
+    shell: 'from-amber-50 via-white to-white border-amber-100',
+    icon: 'bg-amber-100 text-amber-600',
+    text: 'text-amber-700'
+  },
+  emerald: {
+    shell: 'from-emerald-50 via-white to-white border-emerald-100',
+    icon: 'bg-emerald-100 text-emerald-600',
+    text: 'text-emerald-700'
+  },
+  sky: {
+    shell: 'from-sky-50 via-white to-white border-sky-100',
+    icon: 'bg-sky-100 text-sky-600',
+    text: 'text-sky-700'
+  },
+  teal: {
+    shell: 'from-teal-50 via-white to-white border-teal-100',
+    icon: 'bg-teal-100 text-teal-600',
+    text: 'text-teal-700'
+  }
+};
+
+function ProgressBar({ inverse = false, label, percent, tone = 'emerald', value }) {
+  const clampedPercent = Math.max(0, Math.min(Number(percent) || 0, 100));
+  const fillClass = tone === 'amber'
+    ? 'bg-gradient-to-r from-amber-400 via-yellow-400 to-lime-300'
+    : 'bg-gradient-to-r from-teal-500 via-emerald-400 to-lime-300';
+  const labelClass = inverse ? 'text-white/65' : 'text-slate-700';
+  const valueClass = inverse ? 'text-white' : 'text-slate-900';
+  const trackClass = inverse ? 'bg-white/15' : 'bg-slate-200/70';
+
+  return (
+    <div className="space-y-2">
+      <div className={`flex items-center justify-between gap-3 text-sm font-semibold ${labelClass}`}>
+        <span>{label}</span>
+        <span className={valueClass}>{value}</span>
+      </div>
+      <div className={`h-2.5 w-full rounded-full ${trackClass}`}>
+        <div className={`h-full rounded-full ${fillClass}`} style={{ width: `${clampedPercent}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function ReportMetric({ label, value, tone = 'teal' }) {
+  const styles = insightStyles[tone] || insightStyles.teal;
+
+  return (
+    <div className={`rounded-2xl border bg-gradient-to-br ${styles.shell} px-5 py-4`}>
+      <p className="text-xs font-bold uppercase tracking-wider text-slate-500">{label}</p>
+      <p className="mt-2 text-2xl font-bold tracking-tight text-slate-950">{value}</p>
+    </div>
+  );
+}
+
+function InsightChip({ icon: Icon, label, value, tone = 'teal', variant = 'dark' }) {
+  const styles = insightStyles[tone] || insightStyles.teal;
+  const shellClass = variant === 'light'
+    ? 'border-slate-200 bg-white/80 text-slate-900 shadow-sm'
+    : 'border-white/10 bg-white/10 text-white/90 backdrop-blur';
+  const labelClass = variant === 'light' ? 'text-slate-500' : 'text-white/55';
+  const valueClass = variant === 'light' ? 'text-slate-950' : 'text-white';
+
+  return (
+    <div className={`flex items-center gap-3.5 rounded-full border px-5 py-2.5 ${shellClass}`}>
+      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${styles.icon}`}>
+        <Icon size={17} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className={`text-[11px] font-bold uppercase tracking-wider ${labelClass}`}>{label}</p>
+        <p className={`text-base font-bold ${valueClass}`}>{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function ChannelSplitBar({ primaryValue, secondaryValue }) {
+  const total = Math.max(Number(primaryValue || 0) + Number(secondaryValue || 0), 1);
+  const primaryPercent = Math.max(0, Math.min((Number(primaryValue || 0) / total) * 100, 100));
+  const secondaryPercent = Math.max(0, 100 - primaryPercent);
+
+  return (
+    <div className="w-full rounded-3xl border border-slate-200 bg-slate-50/80 p-5">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Energy channel split</p>
+        <p className="text-sm font-bold text-slate-900">{kwh(total)} kWh</p>
+      </div>
+      <div className="mt-4 flex h-5 overflow-hidden rounded-full bg-slate-200">
+        <div
+          className="bg-gradient-to-r from-teal-600 to-emerald-400"
+          style={{ width: `${primaryPercent}%` }}
+        />
+        <div
+          className="bg-gradient-to-r from-amber-400 to-yellow-300"
+          style={{ width: `${secondaryPercent}%` }}
+        />
+      </div>
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="rounded-2xl bg-white px-4 py-3 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wider text-teal-700">SolarMate</p>
+          <p className="mt-1 text-xl font-bold text-slate-950">{kwh(primaryValue)} kWh</p>
+        </div>
+        <div className="rounded-2xl bg-white px-4 py-3 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wider text-amber-700">Solar ATAP excess</p>
+          <p className="mt-1 text-xl font-bold text-slate-950">{kwh(secondaryValue)} kWh</p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function stableRatio(seedText) {
@@ -297,25 +409,28 @@ export default function ProsumerExports({ prosumer, user }) {
       {view === 'weekly' && (
         <>
           <DashboardCard eyebrow="Weekly export" title="This Week's Solar Export">
-            <p className="microcopy">
-              {hasEspDevice
-                ? 'The latest 7 Malaysia dates start simulated. Each ESP packet adds the next demo day, and refresh starts the sequence again.'
-                : 'Weekly totals are summed from daily export records. Generated energy always equals local consumption plus exported energy.'}
-            </p>
-            <div className="summary-metrics compact important-metrics">
-              <div className="metric-emphasis"><span>Exported This Week</span><strong>{kwh(weeklySummary.exported)} kWh</strong></div>
-              <div><span>Generated This Week</span><strong>{kwh(weeklySummary.generated)} kWh</strong></div>
-              <div><span>Local Consumption This Week</span><strong>{kwh(weeklySummary.local)} kWh</strong></div>
-              {!hasEspDevice && (
-                <>
-                  <div className="metric-emphasis"><span>Total Earnings This Week</span><strong>RM{weeklySummary.earnings.toFixed(2)}</strong></div>
-                  <div><span>Average Daily Export</span><strong>{weeklySummary.average.toFixed(2)} kWh</strong></div>
+            <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.07)]">
+              <div className="bg-gradient-to-br from-teal-100 via-emerald-100 to-amber-100 px-7 py-6">
+                <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                   <div>
-                    <span>Best Day</span>
-                    <strong>{weeklySummary.best ? `${formatDateLabel(weeklySummary.best.date)} (${weeklySummary.best.exported_kwh} kWh)` : '-'}</strong>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-teal-800">Export performance</p>
+                    <div className="mt-3 flex flex-wrap items-end gap-x-3 gap-y-1">
+                      <span className="text-5xl font-bold tracking-tight text-slate-950">{kwh(weeklySummary.exported)}</span>
+                      <span className="pb-2 text-xl font-bold text-slate-600">kWh exported</span>
+                    </div>
                   </div>
-                </>
-              )}
+                  <div className="flex flex-wrap gap-3">
+                    <InsightChip icon={Wallet} label="Earnings" tone="emerald" value={`RM${weeklySummary.earnings.toFixed(2)}`} variant="light" />
+                    <InsightChip icon={Award} label="Best day" tone="amber" value={weeklySummary.best ? formatDateLabel(weeklySummary.best.date) : '-'} variant="light" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 p-5 md:grid-cols-3">
+                <ReportMetric label="Generated" tone="amber" value={`${kwh(weeklySummary.generated)} kWh`} />
+                <ReportMetric label="Used on site" tone="sky" value={`${kwh(weeklySummary.local)} kWh`} />
+                <ReportMetric label="Daily export average" tone="teal" value={`${weeklySummary.average.toFixed(2)} kWh`} />
+              </div>
             </div>
           </DashboardCard>
 
@@ -347,22 +462,34 @@ export default function ProsumerExports({ prosumer, user }) {
             eyebrow="Monthly export"
             title="SolarMate Quota and Solar ATAP Excess"
           >
-            <p className="microcopy">
-              {hasEspDevice
-                ? 'The current Malaysia month combines simulated base days with ESP-derived demo days from this session.'
-                : 'Monthly earnings are calculated from the same daily export records, then split between SolarMate quota and Solar ATAP excess.'}
-            </p>
-            <div className="summary-metrics compact important-metrics">
-              <div className="metric-emphasis"><span>Exported This Month</span><strong>{kwh(currentMonth?.actual_exported_kwh)} kWh</strong></div>
-              <div className="metric-emphasis"><span>Sold to SolarMate</span><strong>{kwh(currentMonth?.solar_mate_kwh)} kWh</strong></div>
-              <div className="metric-emphasis"><span>Excess Sold to Solar ATAP</span><strong>{kwh(currentMonth?.solar_atap_kwh)} kWh</strong></div>
-              {!hasEspDevice && (
-                <>
-                  <div className="metric-emphasis"><span>Total Earnings This Month</span><strong>RM{(currentMonth?.total_earnings ?? 0).toFixed(2)}</strong></div>
-                  <div><span>Monthly Quota</span><strong>{quota.toLocaleString()} kWh</strong></div>
-                  <div><span>Monthly Quota Used</span><strong>{quotaUsed.toFixed(0)}%</strong></div>
-                </>
-              )}
+            <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.07)]">
+              <div className="bg-gradient-to-br from-teal-100 via-emerald-100 to-amber-100 px-7 py-6">
+                <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-teal-800">Settlement performance</p>
+                    <div className="mt-3 flex flex-wrap items-end gap-x-3 gap-y-1">
+                      <span className="text-5xl font-bold tracking-tight text-slate-950">{kwh(currentMonth?.actual_exported_kwh)}</span>
+                      <span className="pb-2 text-xl font-bold text-slate-600">/ {quota.toLocaleString()} kWh quota</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    <InsightChip icon={Wallet} label="Earnings" tone="emerald" value={`RM${(currentMonth?.total_earnings ?? 0).toFixed(2)}`} variant="light" />
+                    <InsightChip icon={Award} label="Quota used" tone="amber" value={`${quotaUsed.toFixed(0)}%`} variant="light" />
+                  </div>
+                </div>
+                <div className="mt-6">
+                  <ProgressBar
+                    label="SolarMate quota pace"
+                    percent={quotaUsed}
+                    value={`${quotaUsed.toFixed(0)}% fulfilled`}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 p-5 md:grid-cols-2">
+                <ReportMetric label="Sold to SolarMate" tone="teal" value={`${kwh(currentMonth?.solar_mate_kwh)} kWh`} />
+                <ReportMetric label="Solar ATAP excess" tone="amber" value={`${kwh(currentMonth?.solar_atap_kwh)} kWh`} />
+              </div>
             </div>
           </DashboardCard>
 

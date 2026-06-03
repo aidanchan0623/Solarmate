@@ -79,17 +79,17 @@ export default function Login({ onLogin }) {
     <main className="login-page auth-login-page">
       <section className="login-hero">
         <div className="brand-block login-brand">
-          <div className="logo-mark">
-            <Zap size={26} />
+          <div className="logo-mark login-logo-mark">
+            <Zap size={22} strokeWidth={2.6} />
           </div>
           <div>
-            <strong>SolarMate</strong>
+            <strong className="font-extrabold text-slate-900">SolarMate</strong>
             <span>Smarter Energy, Smarter Connections</span>
           </div>
         </div>
         <div className="login-copy">
           <p className="eyebrow">Community solar sharing platform</p>
-          <h1>SolarMate</h1>
+          <h1 className="font-extrabold">SolarMate</h1>
           <p>
             Sign in or register as a prosumer or low-voltage business consumer. Admin access is seeded
             locally for prototype management.

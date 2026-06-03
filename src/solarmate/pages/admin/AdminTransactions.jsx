@@ -173,7 +173,7 @@ export default function AdminTransactions() {
       </div>
 
       <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="w-full overflow-x-auto">
+        <div className="premium-scrollbar w-full overflow-x-auto">
           <table className="w-full min-w-max border-collapse">
             <thead>
               <tr className="border-b border-slate-200 bg-transparent text-xs font-semibold uppercase tracking-wider text-slate-500">

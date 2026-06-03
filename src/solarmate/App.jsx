@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Zap } from 'lucide-react';
 import { getConsumerProfile, getCurrentUser, getProsumerProfile, getStoredToken, setStoredToken } from './api/client';
 import OnboardingModal from './components/OnboardingModal';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -78,7 +79,9 @@ export default function App() {
       <main className="login-page">
         <section className="login-hero">
           <div className="brand-block">
-            <div className="logo-mark" />
+            <div className="logo-mark">
+              <Zap size={24} />
+            </div>
             <div>
               <strong>SolarMate</strong>
               <span>Loading secure session...</span>

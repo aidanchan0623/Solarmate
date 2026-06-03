@@ -182,7 +182,6 @@ export default function CompactGroupedBarChart({
                       width={barWidth}
                       x={x}
                       y={stacked ? stackedY : y(value)}
-                      style={useGradientBars ? { filter: 'drop-shadow(0 0 10px rgba(45,212,191,0.24))' } : undefined}
                     />
                   );
                 })}

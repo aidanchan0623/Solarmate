@@ -100,12 +100,23 @@ export default function ProsumerEnergyWallet() {
             <span>Available Wallet Balance</span>
             <strong>{money(wallet.balance)}</strong>
             <small>Ready for cashout</small>
+            <button className="mt-6 inline-flex w-fit items-center gap-2 rounded-lg border border-white/40 bg-white px-4 py-2 font-semibold text-teal-800 shadow-sm transition-colors hover:bg-teal-50" onClick={() => setCashoutOpen(true)} type="button">
+              <WalletCards size={17} /> Cash Out
+            </button>
           </div>
-          <div className="wallet-detail-grid">
-            <div><span>This Month Earnings</span><strong>{money(earnings.total_earnings_this_month)}</strong></div>
-            <div><span>Pending Settlement</span><strong>{money(earnings.pending_settlement)}</strong></div>
-            <div><span>Total Lifetime Earnings</span><strong>{money(lifetimeEarnings || earnings.total_earnings_this_month)}</strong></div>
-            <div><span>Cashout Status</span><strong>{wallet.balance > 0 ? 'Available' : 'No balance'}</strong></div>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between rounded-xl border border-slate-100 border-t-4 border-t-teal-600 bg-white p-4 shadow-sm">
+              <span className="text-sm font-medium text-slate-500">This Month Earnings</span>
+              <strong className="text-xl font-bold text-slate-900">{money(earnings.total_earnings_this_month)}</strong>
+            </div>
+            <div className="flex items-center justify-between rounded-xl border border-slate-100 border-t-4 border-t-amber-400 bg-white p-4 shadow-sm">
+              <span className="text-sm font-medium text-slate-500">Pending Settlement</span>
+              <strong className="text-xl font-bold text-slate-900">{money(earnings.pending_settlement)}</strong>
+            </div>
+            <div className="flex items-center justify-between rounded-xl border border-slate-100 border-t-4 border-t-emerald-500 bg-white p-4 shadow-sm">
+              <span className="text-sm font-medium text-slate-500">Total Lifetime Earnings</span>
+              <strong className="text-xl font-bold text-slate-900">{money(lifetimeEarnings || earnings.total_earnings_this_month)}</strong>
+            </div>
           </div>
         </div>
       </DashboardCard>
@@ -115,9 +126,6 @@ export default function ProsumerEnergyWallet() {
           <div className="action-row">
             <button className="secondary-button" type="button" onClick={openStatement}>
               <Download size={16} /> Download Monthly Statement
-            </button>
-            <button className="primary-button" onClick={() => setCashoutOpen(true)} type="button">
-              <WalletCards size={17} /> Cash Out
             </button>
           </div>
         }

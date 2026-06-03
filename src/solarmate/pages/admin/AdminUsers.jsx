@@ -263,7 +263,7 @@ export default function AdminUsers({ user }) {
             />
           </div>
 
-          <div className="w-full overflow-x-auto rounded-2xl border border-white/10 bg-slate-900/70 [contain:paint]">
+          <div className="premium-scrollbar w-full overflow-x-auto rounded-2xl border border-white/10 bg-slate-900/70 [contain:paint]">
             <table className="w-full min-w-[1320px] table-fixed border-collapse text-left">
               <colgroup>
                 <col className="w-[380px]" />

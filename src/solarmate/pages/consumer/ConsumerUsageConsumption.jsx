@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BatteryCharging, Download, Leaf, PiggyBank, Receipt, Zap } from 'lucide-react';
+import { BatteryCharging, Download, Leaf, Zap } from 'lucide-react';
 import {
   getConsumerLiveMeter,
   getConsumerMonthlyUsageHistory,
@@ -8,7 +8,6 @@ import {
 import CompactGroupedBarChart from '../../components/CompactGroupedBarChart';
 import DashboardCard from '../../components/DashboardCard';
 import StatementModal from '../../components/StatementModal';
-import { SOLARMATE_RATE, TNB_PEAK_TOTAL_RATE } from '../../utils/calculations';
 
 function formatShortDate(value) {
   const [year, month, day] = String(value).split('-').map(Number);
@@ -25,16 +24,25 @@ function money(value) {
   return `RM${Number(value || 0).toFixed(2)}`;
 }
 
-function KpiCard({ label, value, accent = 'border-l-teal-400', icon: Icon, iconClass = 'text-teal-600 bg-teal-50' }) {
+function KpiCard({
+  label,
+  value,
+  accent = 'from-teal-500 to-emerald-400',
+  icon: Icon,
+  iconClass = 'text-teal-600 bg-teal-50',
+  tint = 'from-white via-teal-50/35 to-white'
+}) {
   return (
-    <div className={`rounded-xl border border-slate-200 bg-white p-5 shadow-sm border-l-4 ${accent}`}>
-      <div className="flex items-start justify-between gap-4">
+    <div className={`group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-br ${tint} p-5 shadow-[0_18px_48px_-42px_rgba(15,23,42,0.55)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_60px_-44px_rgba(13,148,136,0.7)]`}>
+      <div className={`absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r ${accent}`} />
+      <div className="pointer-events-none absolute -right-12 -top-12 h-28 w-28 rounded-full bg-white/80 blur-3xl transition-opacity duration-300 group-hover:opacity-70" />
+      <div className="relative flex items-start justify-between gap-4">
         <div>
-          <span className="block text-sm font-medium text-slate-500">{label}</span>
-          <strong className="mt-2 block text-2xl font-bold text-slate-900 tabular-nums">{value}</strong>
+          <span className="block text-xs font-bold uppercase tracking-wider text-slate-500">{label}</span>
+          <strong className="mt-3 block text-2xl font-bold tracking-tight text-slate-950 tabular-nums">{value}</strong>
         </div>
         {Icon && (
-          <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconClass}`}>
+          <span className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl shadow-sm transition-transform duration-300 group-hover:scale-105 ${iconClass}`}>
             <Icon size={18} />
           </span>
         )}
@@ -123,8 +131,7 @@ export default function ConsumerUsageConsumption({ consumer }) {
     const total = weeklyRows.reduce((sum, row) => sum + row.total_usage_kwh, 0);
     const green = weeklyRows.reduce((sum, row) => sum + row.green_credit_kwh, 0);
     const tnb = weeklyRows.reduce((sum, row) => sum + row.tnb_import_kwh, 0);
-    const saving = green * (TNB_PEAK_TOTAL_RATE - SOLARMATE_RATE);
-    return { total, green, tnb, saving };
+    return { total, green, tnb };
   }, [weeklyRows]);
 
   const currentMonth = monthlyRows[monthlyRows.length - 1];
@@ -154,13 +161,13 @@ export default function ConsumerUsageConsumption({ consumer }) {
 
   return (
     <div className="page-stack">
-      <div className="inline-flex w-fit rounded-full border border-slate-200 bg-white p-1">
+      <div className="inline-flex w-fit rounded-full border border-teal-100 bg-white/80 p-1 shadow-[0_14px_34px_-30px_rgba(15,23,42,0.5)] backdrop-blur">
         {['weekly', 'monthly'].map((item) => (
           <button
             className={`px-5 py-2 text-sm font-semibold transition-colors ${
               view === item
-                ? 'bg-emerald-600 text-white rounded-full'
-                : 'text-slate-500 hover:text-slate-700'
+                ? 'bg-gradient-to-r from-teal-600 to-emerald-500 text-white rounded-full shadow-[0_10px_24px_-18px_rgba(16,185,129,0.9)]'
+                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-full'
             }`}
             key={item}
             onClick={() => setView(item)}
@@ -178,40 +185,38 @@ export default function ConsumerUsageConsumption({ consumer }) {
             <p className="microcopy">
               Weekly values are summed from daily meter records. Total usage equals green credit plus TNB import.
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
               <KpiCard
-                accent="border-l-teal-400"
+                accent="from-cyan-400 to-teal-500"
                 icon={BatteryCharging}
                 iconClass="bg-teal-50 text-teal-600"
-                label="Energy Used"
+                label="Total Usage"
+                tint="from-white via-cyan-50/45 to-white"
                 value={`${kwh(weeklySummary.total)} kWh`}
               />
               <KpiCard
-                accent="border-l-emerald-400"
+                accent="from-emerald-400 to-lime-300"
                 icon={Leaf}
                 iconClass="bg-emerald-50 text-emerald-600"
-                label="Green Credit"
+                label="Green Credit Used"
+                tint="from-white via-emerald-50/45 to-white"
                 value={`${kwh(weeklySummary.green)} kWh`}
               />
               <KpiCard
-                accent="border-l-sky-400"
+                accent="from-sky-400 to-cyan-400"
                 icon={Zap}
                 iconClass="bg-sky-50 text-sky-600"
                 label="TNB Import"
+                tint="from-white via-sky-50/45 to-white"
                 value={`${kwh(weeklySummary.tnb)} kWh`}
-              />
-              <KpiCard
-                accent="border-l-amber-400"
-                icon={PiggyBank}
-                iconClass="bg-amber-50 text-amber-600"
-                label="Estimated Saving"
-                value={money(weeklySummary.saving)}
               />
             </div>
           </DashboardCard>
 
           <DashboardCard eyebrow="Weekly chart" title="Green Credit and TNB Import by Day">
             <CompactGroupedBarChart
+              barSize={30}
+              className="bg-gradient-to-br from-white via-teal-50/30 to-sky-50/30"
               data={weeklyChartData}
               height={300}
               series={[
@@ -223,6 +228,7 @@ export default function ConsumerUsageConsumption({ consumer }) {
               ]}
               tooltipTitle={(item) => item.fullDate}
               valueSuffix=" kWh"
+              useGradientBars
               xKey="date"
             />
           </DashboardCard>
@@ -239,48 +245,38 @@ export default function ConsumerUsageConsumption({ consumer }) {
             <p className="microcopy">
               Monthly values are calculated from daily meter records and use the same totals as billing.
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
               <KpiCard
-                accent="border-l-teal-400"
+                accent="from-cyan-400 to-teal-500"
                 icon={BatteryCharging}
                 iconClass="bg-teal-50 text-teal-600"
                 label="Total Usage"
+                tint="from-white via-cyan-50/45 to-white"
                 value={`${kwh(currentMonth?.total_usage_kwh)} kWh`}
               />
               <KpiCard
-                accent="border-l-emerald-400"
+                accent="from-emerald-400 to-lime-300"
                 icon={Leaf}
                 iconClass="bg-emerald-50 text-emerald-600"
-                label="Green Credit"
+                label="Green Credit Used"
+                tint="from-white via-emerald-50/45 to-white"
                 value={`${kwh(currentMonth?.green_credit_kwh)} kWh`}
               />
               <KpiCard
-                accent="border-l-sky-400"
+                accent="from-sky-400 to-cyan-400"
                 icon={Zap}
                 iconClass="bg-sky-50 text-sky-600"
                 label="TNB Import"
+                tint="from-white via-sky-50/45 to-white"
                 value={`${kwh(currentMonth?.tnb_import_kwh)} kWh`}
-              />
-              <KpiCard
-                accent="border-l-blue-400"
-                icon={Receipt}
-                iconClass="bg-blue-50 text-blue-600"
-                label="Month Bill"
-                value={money(currentMonth?.total_bill)}
-              />
-              <KpiCard
-                accent="border-l-amber-400"
-                icon={PiggyBank}
-                iconClass="bg-amber-50 text-amber-600"
-                label="Saved"
-                value={`${(currentMonth?.actual_saving_percentage ?? 0).toFixed(2)}%`}
               />
             </div>
           </DashboardCard>
 
           <DashboardCard eyebrow="Monthly chart" title="Monthly Usage by Source">
             <CompactGroupedBarChart
-              barSize={58}
+              barSize={38}
+              className="bg-gradient-to-br from-white via-teal-50/30 to-sky-50/30"
               data={monthlyChartData}
               height={300}
               series={[
@@ -295,6 +291,7 @@ export default function ConsumerUsageConsumption({ consumer }) {
               ]}
               tooltipTitle={(item) => item.fullMonth}
               valueSuffix=" kWh"
+              useGradientBars
               xKey="month"
             />
             <MonthlyUsageTable rows={monthlyRows} />
