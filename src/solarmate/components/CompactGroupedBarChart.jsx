@@ -35,6 +35,10 @@ export default function CompactGroupedBarChart({
   tooltipExtra,
   barSize,
   maxBarSize = 48,
+  barRadius = 6,
+  highlightKey,
+  highlightLabel = 'In progress',
+  roundedStacked = false,
   isLoading = false,
   minDataPoints = 1,
   className = '',
@@ -166,19 +170,66 @@ export default function CompactGroupedBarChart({
             const totalGroupBarWidth = series.length * barWidth + barGap * (series.length - 1);
             const groupX = groupStart + Math.max((groupWidth - totalGroupBarWidth) / 2, 1);
             const stackedX = groupStart + Math.max((groupWidth - barWidth) / 2, 1);
+            const isHighlighted = highlightKey && Boolean(item[highlightKey]);
+            const visibleSeries = series.filter((entry) => Number(item[entry.key]) > 0);
+            const firstVisibleKey = visibleSeries[0]?.key;
+            const lastVisibleKey = visibleSeries[visibleSeries.length - 1]?.key;
             let stackedOffset = 0;
             return (
               <g key={item[xKey]}>
+                {isHighlighted && (
+                  <g className="chart-highlight">
+                    <rect
+                      height={chartHeight + 28}
+                      rx="14"
+                      width={Math.min(groupWidth - 14, Math.max(barWidth + 34, 58))}
+                      x={groupStart + Math.max((groupWidth - Math.min(groupWidth - 14, Math.max(barWidth + 34, 58))) / 2, 1)}
+                      y={padding.top - 8}
+                    />
+                    <rect
+                      className="chart-highlight-label"
+                      height="18"
+                      rx="9"
+                      width="82"
+                      x={groupStart + groupWidth / 2 - 41}
+                      y={padding.top - 2}
+                    />
+                    <text x={groupStart + groupWidth / 2} y={padding.top + 11} textAnchor="middle">
+                      {highlightLabel}
+                    </text>
+                  </g>
+                )}
                 {series.map((entry, entryIndex) => {
                   const value = Number(item[entry.key]) || 0;
                   const barHeight = chartHeight - (y(value) - padding.top);
                   const x = stacked ? stackedX : groupX + entryIndex * (barWidth + barGap);
                   const stackedY = padding.top + chartHeight - stackedOffset - barHeight;
                   stackedOffset += barHeight;
+                  if (barHeight <= 0) return null;
+                  const corners = stacked && roundedStacked
+                    ? {
+                        topLeft: entry.key === lastVisibleKey,
+                        topRight: entry.key === lastVisibleKey,
+                        bottomRight: entry.key === firstVisibleKey,
+                        bottomLeft: entry.key === firstVisibleKey
+                      }
+                    : {
+                        topLeft: true,
+                        topRight: true,
+                        bottomRight: true,
+                        bottomLeft: true
+                      };
                   return (
-                    <rect
+                    <path
+                      d={roundedRectPath({
+                        height: barHeight,
+                        radius: barRadius,
+                        width: barWidth,
+                        x,
+                        y: stacked ? stackedY : y(value),
+                        ...corners
+                      })}
                       fill={useGradientBars ? `url(#${gradientIdFor(entry.key)})` : palette[entry.color] || entry.color}
-                      height={barHeight}
                       key={entry.key}
                       className="chart-bar"
                       onMouseEnter={(event) => showTooltip(event, item, entry.key)}
@@ -190,11 +241,7 @@ export default function CompactGroupedBarChart({
                       onClick={(event) => showTooltip(event, item, entry.key)}
                       onFocus={(event) => showTooltip(event, item, entry.key)}
                       onBlur={() => setTooltip(null)}
-                      rx="6"
                       tabIndex="0"
-                      width={barWidth}
-                      x={x}
-                      y={stacked ? stackedY : y(value)}
                     />
                   );
                 })}
@@ -228,6 +275,37 @@ export default function CompactGroupedBarChart({
       )}
     </div>
   );
+}
+
+function roundedRectPath({
+  x,
+  y,
+  width,
+  height,
+  radius,
+  topLeft = true,
+  topRight = true,
+  bottomRight = true,
+  bottomLeft = true
+}) {
+  const r = Math.max(0, Math.min(radius, width / 2, height / 2));
+  const tl = topLeft ? r : 0;
+  const tr = topRight ? r : 0;
+  const br = bottomRight ? r : 0;
+  const bl = bottomLeft ? r : 0;
+
+  return [
+    `M ${x + tl} ${y}`,
+    `H ${x + width - tr}`,
+    tr ? `Q ${x + width} ${y} ${x + width} ${y + tr}` : `L ${x + width} ${y}`,
+    `V ${y + height - br}`,
+    br ? `Q ${x + width} ${y + height} ${x + width - br} ${y + height}` : `L ${x + width} ${y + height}`,
+    `H ${x + bl}`,
+    bl ? `Q ${x} ${y + height} ${x} ${y + height - bl}` : `L ${x} ${y + height}`,
+    `V ${y + tl}`,
+    tl ? `Q ${x} ${y} ${x + tl} ${y}` : `L ${x} ${y}`,
+    'Z'
+  ].join(' ');
 }
 
 function formatValue(value, valuePrefix = '') {

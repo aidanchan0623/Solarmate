@@ -386,7 +386,10 @@ export default function ProsumerExports({ prosumer, user }) {
     fullMonth: row.month,
     solarMateKWh: row.solar_mate_kwh,
     solarAtapKWh: row.solar_atap_kwh,
-    totalEarnings: row.total_earnings
+    totalExportedKWh: row.actual_exported_kwh,
+    totalEarnings: row.total_earnings,
+    status: row.status,
+    isCurrentMonth: Boolean(currentMonth?.month_key && row.month_key === currentMonth.month_key)
   }));
 
   async function openStatement() {
@@ -507,18 +510,24 @@ export default function ProsumerExports({ prosumer, user }) {
 
           <DashboardCard eyebrow="Monthly chart" title="Monthly Energy Sold by Channel">
             <CompactGroupedBarChart
-              barSize={34}
-              className="rounded-[2rem] border border-amber-100/40 bg-gradient-to-br from-amber-50/60 via-emerald-50/30 to-teal-50/40 p-6 backdrop-blur-sm mt-4"
+              barRadius={10}
+              barSize={54}
+              className="prosumer-monthly-export-chart rounded-[2rem] border border-amber-100/40 bg-gradient-to-br from-amber-50/60 via-emerald-50/30 to-teal-50/40 p-4 backdrop-blur-sm mt-4"
               data={monthlyChartData}
               emptyMessage={hasEspDevice ? 'No session export yet. Send ESP readings to build the monthly split.' : 'No monthly export data yet.'}
-              height={300}
+              height={320}
+              highlightKey="isCurrentMonth"
+              highlightLabel="In Progress"
+              maxBarSize={62}
+              roundedStacked
               series={[
-                { key: 'solarMateKWh', label: 'Energy sold to SolarMate', color: 'teal' },
-                { key: 'solarAtapKWh', label: 'Excess sold to Solar ATAP', color: 'gold' }
+                { key: 'solarMateKWh', label: 'Sold to SolarMate', color: 'teal' },
+                { key: 'solarAtapKWh', label: 'Solar ATAP Excess', color: 'gold' }
               ]}
               stacked
-              tooltipExtra={hasEspDevice ? undefined : (item) => [
-                { label: 'Total earnings', value: `RM${(item.totalEarnings || 0).toFixed(2)}`, color: 'green' }
+              tooltipExtra={(item) => [
+                { label: 'Total exported', value: `${kwh(item.totalExportedKWh)} kWh`, color: 'green' },
+                ...(item.status ? [{ label: 'Status', value: item.status, color: item.isCurrentMonth ? 'amber' : 'blueGrey' }] : [])
               ]}
               tooltipTitle={(item) => item.fullMonth}
               valueSuffix=" kWh"
