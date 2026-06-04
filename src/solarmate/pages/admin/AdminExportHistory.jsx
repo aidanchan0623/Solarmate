@@ -126,7 +126,7 @@ function AllocationTooltip({ active, payload, label }) {
     <div className="rounded-2xl border border-white/10 bg-slate-950/95 px-4 py-3 text-slate-200 shadow-[0_18px_45px_rgba(0,0,0,0.42)] backdrop-blur-xl">
       <p className="mb-2 text-sm font-semibold text-white">{label}</p>
       <div className="grid min-w-56 gap-1.5">
-        {items.filter((item) => Number(item.value) > 0).map((item) => (
+        {items.map((item) => (
           <div className="flex items-center gap-3 text-xs" key={item.label}>
             <span className="h-2.5 w-2.5 rounded-full" style={{ background: item.color }} />
             <span className="text-slate-400">{item.label}</span>
@@ -303,8 +303,8 @@ export default function AdminExportHistory() {
     <div className="page-stack">
       <DashboardCard eyebrow="Monthly export records" title="Platform export and matching records">
         <p className="microcopy max-w-5xl">
-          Platform monthly records are aggregated from prosumer export and consumer demand data.
-          Matched energy is calculated as min(prosumer supply, consumer demand).
+          Platform monthly records are aggregated from prosumer export and green-energy demand data.
+          Current-month export is month-to-date; unmatched supply appears only when export exceeds SolarMate demand or quota capacity.
         </p>
         {error && <div className="auth-error">{error}</div>}
         {loading && !latest && <SummarySkeleton />}
@@ -323,7 +323,7 @@ export default function AdminExportHistory() {
               value={`${latest.matched_energy_kwh.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kWh`}
             />
             <ExportSummaryCard
-              detail="Remaining prosumer supply"
+              detail="Export above demand or quota"
               label="Unmatched supply"
               tone="amber"
               value={`${latest.unmatched_supply_kwh.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kWh`}
@@ -569,7 +569,7 @@ export default function AdminExportHistory() {
             </div>
           </div>
           <p className="mt-4 text-sm font-medium text-slate-400">
-            Stacked bars show each month as a share of total allocation so small excess and gap values remain visible; the tooltip keeps exact kWh values.
+            Stacked bars show matched SolarMate energy, true Solar ATAP excess, and any remaining demand gap; the tooltip keeps exact kWh values, including zero excess.
           </p>
         </div>
       </section>

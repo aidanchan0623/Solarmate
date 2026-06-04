@@ -20,11 +20,40 @@ def platform_user_counts(db: Session) -> dict:
     }
 
 
+def active_prosumer_quota(db: Session) -> float:
+    return float(
+        db.query(func.sum(models.ProsumerProfile.export_commitment_kwh))
+        .join(models.User, models.User.id == models.ProsumerProfile.user_id)
+        .filter(
+            models.User.role == "prosumer",
+            models.User.status == "active",
+            models.User.has_completed_onboarding.is_(True),
+        )
+        .scalar()
+        or 0
+    )
+
+
+def active_consumer_allocation(db: Session) -> float:
+    return float(
+        db.query(func.sum(models.ConsumerProfile.package_allocation_kwh))
+        .join(models.User, models.User.id == models.ConsumerProfile.user_id)
+        .filter(
+            models.User.role == "consumer",
+            models.User.status == "active",
+            models.User.has_completed_onboarding.is_(True),
+        )
+        .scalar()
+        or 0
+    )
+
+
 def upsert_monthly_summary(db: Session, month_key: str) -> models.PlatformMonthlySummary:
     counts = platform_user_counts(db)
     date_filters = [models.ProsumerDailyExport.date.like(f"{month_key}-%")]
     usage_date_filters = [models.ConsumerDailyUsage.date.like(f"{month_key}-%")]
-    if energy.is_current_month(month_key):
+    is_current_month = energy.is_current_month(month_key)
+    if is_current_month:
         date_filters.append(models.ProsumerDailyExport.date <= energy.today_key())
         usage_date_filters.append(models.ConsumerDailyUsage.date <= energy.today_key())
     supply = (
@@ -52,10 +81,20 @@ def upsert_monthly_summary(db: Session, month_key: str) -> models.PlatformMonthl
         or 0
     )
     supply = float(supply)
-    demand = float(demand)
-    matched = min(supply, demand)
-    unmatched_supply = max(supply - demand, 0)
-    unmatched_demand = max(demand - supply, 0)
+    recorded_demand = float(demand)
+    quota_capacity = active_prosumer_quota(db)
+    demand_capacity = active_consumer_allocation(db)
+
+    # Current-month records are month-to-date for actual export, but SolarMate can
+    # still match that export against the active monthly green-credit demand pool.
+    demand = recorded_demand
+    if is_current_month and demand_capacity > 0:
+        available_monthly_demand = min(demand_capacity, quota_capacity or demand_capacity)
+        demand = max(recorded_demand, min(supply, available_monthly_demand))
+
+    matched = min(supply, demand, quota_capacity) if quota_capacity > 0 else min(supply, demand)
+    unmatched_supply = max(supply - matched, 0)
+    unmatched_demand = max(demand - matched, 0)
     matching_rate = (matched / supply) * 100 if supply > 0 else 0
 
     summary = (
