@@ -2703,7 +2703,7 @@ tbody tr:hover { background: rgba(39,161,173,0.06); }
   box-shadow: inset 0 0 0 1px rgba(11,63,70,0.06), 0 10px 22px -20px rgba(15,23,42,0.32);
 }
 
-.prosumer-monthly-export-chart {
+:is(.prosumer-monthly-export-chart, .consumer-monthly-usage-chart) {
   gap: 8px;
   border-color: rgba(20,184,166,0.18) !important;
   background:
@@ -2713,13 +2713,13 @@ tbody tr:hover { background: rgba(39,161,173,0.06); }
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.78), 0 22px 52px -42px rgba(11,63,70,0.46);
 }
 
-.prosumer-monthly-export-chart .chart-legend {
+:is(.prosumer-monthly-export-chart, .consumer-monthly-usage-chart) .chart-legend {
   justify-content: flex-end;
   gap: 8px;
   margin-bottom: -2px;
 }
 
-.prosumer-monthly-export-chart .chart-legend span {
+:is(.prosumer-monthly-export-chart, .consumer-monthly-usage-chart) .chart-legend span {
   padding: 5px 9px;
   border: 1px solid rgba(11,63,70,0.06);
   background: rgba(255,255,255,0.88);
@@ -2728,7 +2728,7 @@ tbody tr:hover { background: rgba(39,161,173,0.06); }
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.68), 0 12px 22px -20px rgba(11,63,70,0.4);
 }
 
-.prosumer-monthly-export-chart .grouped-bar-chart {
+:is(.prosumer-monthly-export-chart, .consumer-monthly-usage-chart) .grouped-bar-chart {
   max-height: 320px;
   border-radius: 20px !important;
   background:
@@ -2740,38 +2740,50 @@ tbody tr:hover { background: rgba(39,161,173,0.06); }
   border-color: rgba(20,184,166,0.16) !important;
 }
 
-.prosumer-monthly-export-chart .grouped-bar-chart line {
+:is(.prosumer-monthly-export-chart, .consumer-monthly-usage-chart) .grouped-bar-chart line {
   stroke: rgba(100,116,139,0.12);
 }
 
-.prosumer-monthly-export-chart .grouped-bar-chart text {
+:is(.prosumer-monthly-export-chart, .consumer-monthly-usage-chart) .grouped-bar-chart text {
   fill: #475569;
   font-size: 11px;
   font-weight: 820;
 }
 
-.prosumer-monthly-export-chart .chart-highlight rect:not(.chart-highlight-label) {
+:is(.prosumer-monthly-export-chart, .consumer-monthly-usage-chart) .chart-highlight rect:not(.chart-highlight-label) {
   fill: rgba(20,184,166,0.06);
   stroke: rgba(20,184,166,0.22);
   stroke-dasharray: 3 4;
 }
 
-.prosumer-monthly-export-chart .chart-highlight .chart-highlight-label {
+:is(.prosumer-monthly-export-chart, .consumer-monthly-usage-chart) .chart-highlight .chart-highlight-label {
   fill: rgba(255,255,255,0.94);
   stroke: rgba(20,184,166,0.2);
 }
 
-.prosumer-monthly-export-chart .chart-highlight text {
+:is(.prosumer-monthly-export-chart, .consumer-monthly-usage-chart) .chart-highlight text {
   fill: #0f766e;
   font-size: 9.5px;
 }
 
-.prosumer-monthly-export-chart .chart-tooltip {
+:is(.prosumer-monthly-export-chart, .consumer-monthly-usage-chart) .chart-tooltip {
   border-color: rgba(20,184,166,0.22);
   background:
     radial-gradient(circle at 0% 0%, rgba(20,184,166,0.1), transparent 36%),
     linear-gradient(180deg, rgba(255,255,255,0.99), rgba(248,253,251,0.98));
   box-shadow: 0 28px 64px -34px rgba(11,63,70,0.62);
+}
+
+.consumer-monthly-usage-chart {
+  border-color: rgba(16,185,129,0.18) !important;
+}
+
+.consumer-monthly-usage-chart .grouped-bar-chart {
+  background:
+    linear-gradient(90deg, rgba(15,118,110,0.045) 1px, transparent 1px),
+    radial-gradient(circle at 10% 8%, rgba(16,185,129,0.12), transparent 24%),
+    radial-gradient(circle at 86% 6%, rgba(249,115,22,0.12), transparent 28%),
+    linear-gradient(180deg, rgba(255,255,255,0.99), rgba(248,253,250,0.96)) !important;
 }
 
 .summary-metrics > div,

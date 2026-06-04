@@ -153,7 +153,9 @@ export default function ConsumerUsageConsumption({ consumer }) {
     tnbImport: row.tnb_import_kwh,
     totalUsage: row.total_usage_kwh,
     bill: row.total_bill,
-    saved: row.actual_saving_percentage
+    saved: row.actual_saving_percentage,
+    status: row.payment_status,
+    isCurrentMonth: Boolean(currentMonth?.month_key && row.month_key === currentMonth.month_key)
   }));
 
   async function openStatement() {
@@ -282,10 +284,15 @@ export default function ConsumerUsageConsumption({ consumer }) {
 
           <DashboardCard eyebrow="Monthly chart" title="Monthly Usage by Source">
             <CompactGroupedBarChart
-              barSize={38}
-              className="rounded-2xl border border-teal-100/40 bg-gradient-to-br from-teal-50/60 via-emerald-50/30 to-cyan-50/40 p-4 backdrop-blur-sm"
+              barRadius={10}
+              barSize={54}
+              className="consumer-monthly-usage-chart rounded-2xl border border-teal-100/40 bg-gradient-to-br from-teal-50/60 via-emerald-50/30 to-cyan-50/40 p-4 backdrop-blur-sm"
               data={monthlyChartData}
-              height={300}
+              height={320}
+              highlightKey="isCurrentMonth"
+              highlightLabel="In Progress"
+              maxBarSize={62}
+              roundedStacked
               series={[
                 { key: 'greenCredit', label: 'Green credit', color: 'teal' },
                 { key: 'tnbImport', label: 'TNB import', color: 'orange' }
@@ -294,7 +301,8 @@ export default function ConsumerUsageConsumption({ consumer }) {
               tooltipExtra={(item) => [
                 { label: 'Total usage', value: `${kwh(item.totalUsage)} kWh`, color: 'gold' },
                 { label: 'Bill', value: money(item.bill), color: 'green' },
-                { label: 'Saved', value: `${Number(item.saved || 0).toFixed(2)}%`, color: 'teal' }
+                { label: 'Saved', value: `${Number(item.saved || 0).toFixed(2)}%`, color: 'teal' },
+                ...(item.status ? [{ label: 'Status', value: item.status, color: item.isCurrentMonth ? 'amber' : 'blueGrey' }] : [])
               ]}
               tooltipTitle={(item) => item.fullMonth}
               valueSuffix=" kWh"
