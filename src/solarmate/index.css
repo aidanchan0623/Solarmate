@@ -426,35 +426,52 @@ button {
 }
 
 .time-chip {
-  display: grid;
-  gap: 2px;
-  min-height: 34px;
-  padding: 8px 12px;
-  border: 1px solid rgba(20,184,166,0.16);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 38px;
+  padding: 6px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 999px;
-  color: var(--teal-950);
-  background: rgba(255,255,255,0.72);
-  box-shadow: 0 14px 28px -24px rgba(11,63,70,0.36);
-  text-align: right;
-  backdrop-filter: blur(14px);
+  background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(240,249,255,0.85));
+  box-shadow: 0 4px 14px rgba(11, 63, 70, 0.08), inset 0 2px 4px rgba(255,255,255,0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.portal-admin .time-chip {
+  background: linear-gradient(135deg, rgba(30,41,59,0.9), rgba(15,23,42,0.85));
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .time-chip span,
 .time-chip strong {
-  display: block;
-  font-size: 0.74rem;
-  line-height: 1.15;
+  display: inline-block;
+  font-size: 0.8rem;
+  line-height: 1;
   white-space: nowrap;
 }
 
 .time-chip span {
-  color: var(--grey-500);
-  font-weight: 760;
+  color: var(--grey-650);
+  font-weight: 600;
+}
+
+.portal-admin .time-chip span {
+  color: #94a3b8;
 }
 
 .time-chip strong {
   color: var(--teal-950);
-  font-weight: 900;
+  font-weight: 800;
+  padding-left: 12px;
+  border-left: 1px solid rgba(15, 118, 110, 0.2);
+}
+
+.portal-admin .time-chip strong {
+  color: #f8fafc;
+  border-left: 1px solid rgba(148, 163, 184, 0.3);
 }
 
 .system-chip,
@@ -3785,4 +3802,46 @@ tbody tr:hover { background: rgba(39,161,173,0.06); }
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+}
+
+/* ---------- Grid Intelligence Animations ---------- */
+@keyframes gaugeFill {
+  from { stroke-dasharray: 0 1000; }
+}
+
+@keyframes particleFlow {
+  0% { transform: translateX(0) scale(1); opacity: 0; }
+  10% { opacity: 1; transform: translateX(20px) scale(1.2); }
+  90% { opacity: 1; transform: translateX(80px) scale(1.2); }
+  100% { transform: translateX(100px) scale(1); opacity: 0; }
+}
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slowPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.05); }
+}
+
+.animate-gauge {
+  animation: gaugeFill 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.animate-particle {
+  animation: particleFlow 2.5s linear infinite;
+}
+
+.particle-delay-1 { animation-delay: 0.8s; }
+.particle-delay-2 { animation-delay: 1.6s; }
+
+.stagger-1 { animation: fadeSlideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; animation-delay: 0.1s; opacity: 0; }
+.stagger-2 { animation: fadeSlideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; animation-delay: 0.2s; opacity: 0; }
+.stagger-3 { animation: fadeSlideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; animation-delay: 0.3s; opacity: 0; }
+.stagger-4 { animation: fadeSlideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; animation-delay: 0.4s; opacity: 0; }
+
+.pulse-slow {
+  animation: slowPulse 3s ease-in-out infinite;
 }
