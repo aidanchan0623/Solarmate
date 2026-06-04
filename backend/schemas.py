@@ -414,6 +414,8 @@ class GridIntelligenceWeatherHour(BaseModel):
     expected_shortfall_kwh: float
     expected_surplus_kwh: float
     recommended_tnb_fallback_kwh: float
+    solar_coverage_percent: float
+    fallback_percent: float
     risk_level: str
 
 
@@ -425,6 +427,8 @@ class GridIntelligenceSummary(BaseModel):
     expected_shortfall_kwh: float
     expected_surplus_kwh: float
     recommended_tnb_fallback_kwh: float
+    solar_coverage_percent: float
+    fallback_percent: float
     risk_level: str
     recommendation: str
 

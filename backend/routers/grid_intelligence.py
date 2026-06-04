@@ -119,35 +119,34 @@ def adjusted_solar_factor(raw: dict) -> float:
     )
 
 
-def recommendation_for_hour(raw: dict, factor: float) -> str:
-    if is_night_time(raw["time"]):
-        return "Solar generation is unavailable at night. TNB fallback supply is required to support demand."
-    if factor >= 0.65 and raw["rain_probability"] < 60:
-        return "Solar output is expected to support normal SolarMate matching."
-    if factor >= 0.65 and raw["rain_probability"] >= 60:
-        return (
-            "Solar output is currently healthy, but rain probability is elevated. "
-            "Monitor output and prepare partial TNB fallback if conditions worsen."
-        )
-    if factor >= 0.35:
-        return "Moderate solar output expected. Continue monitoring and prepare partial TNB fallback supply."
-    return "Low solar output expected. Prepare additional TNB fallback supply."
+def risk_recommendation(risk: str) -> str:
+    if risk == "Low":
+        return "Solar coverage is healthy. SolarMate can support most green energy demand with limited TNB fallback."
+    if risk == "Medium":
+        return "Partial TNB fallback is required. SolarMate should continue monitoring solar output and weather changes."
+    return "Major TNB fallback is required. Solar generation is expected to cover less than half of demand."
 
 
-def grid_risk(expected_shortfall: float, expected_surplus: float, demand: float) -> tuple[str, str]:
+def coverage_metrics(forecasted_supply: float, tnb_fallback: float, demand: float) -> tuple[float, float]:
     if demand <= 0:
-        return "Low", "No active consumer green demand is available. Continue monitoring platform onboarding."
-    if expected_surplus > demand * 0.10:
-        return (
-            "Surplus Risk",
-            "Forecasted solar supply exceeds consumer demand. Route excess to Solar ATAP, storage, or additional demand matching.",
-        )
-    shortfall_ratio = expected_shortfall / demand
-    if shortfall_ratio < 0.10:
-        return "Low", "Solar generation is expected to support most consumer demand. Continue normal SolarMate matching."
-    if shortfall_ratio < 0.30:
-        return "Medium", "Moderate solar shortfall expected. Monitor output and prepare partial TNB fallback supply."
-    return "High", "Significant solar shortfall expected due to weather impact. Prepare additional TNB fallback supply."
+        return 0.0, 0.0
+    solar_coverage = min(max(forecasted_supply / demand, 0), 1)
+    fallback = min(max(tnb_fallback / demand, 0), 1)
+    return percentage(solar_coverage * 100), percentage(fallback * 100)
+
+
+def grid_risk(forecasted_supply: float, tnb_fallback: float, demand: float) -> tuple[str, str, float, float]:
+    solar_coverage_percent, fallback_percent = coverage_metrics(forecasted_supply, tnb_fallback, demand)
+    if demand <= 0:
+        return "Low", "No active consumer green demand is available. Continue monitoring platform onboarding.", 0.0, 0.0
+    coverage_ratio = forecasted_supply / demand
+    if coverage_ratio >= 0.75:
+        risk = "Low"
+    elif coverage_ratio >= 0.50:
+        risk = "Medium"
+    else:
+        risk = "High"
+    return risk, risk_recommendation(risk), solar_coverage_percent, fallback_percent
 
 
 def advisory_hour(raw: dict, base_supply: float, consumer_demand: float) -> schemas.GridIntelligenceWeatherHour:
@@ -156,7 +155,7 @@ def advisory_hour(raw: dict, base_supply: float, consumer_demand: float) -> sche
     matched = min(forecasted_supply, consumer_demand)
     shortfall = max(consumer_demand - forecasted_supply, 0)
     surplus = max(forecasted_supply - consumer_demand, 0)
-    risk, _ = grid_risk(shortfall, surplus, consumer_demand)
+    risk, _, solar_coverage_percent, fallback_percent = grid_risk(forecasted_supply, shortfall, consumer_demand)
     return schemas.GridIntelligenceWeatherHour(
         time=raw["time"].isoformat(),
         weather_condition=weather_condition(
@@ -176,6 +175,8 @@ def advisory_hour(raw: dict, base_supply: float, consumer_demand: float) -> sche
         expected_shortfall_kwh=kwh(shortfall),
         expected_surplus_kwh=kwh(surplus),
         recommended_tnb_fallback_kwh=kwh(shortfall),
+        solar_coverage_percent=solar_coverage_percent,
+        fallback_percent=fallback_percent,
         risk_level=risk,
     )
 
@@ -261,12 +262,11 @@ def get_grid_intelligence(
     forecast_rows = relevant_forecast(rows)
     hourly = [advisory_hour(row, base_supply, consumer_demand) for row in forecast_rows]
     current = hourly[0]
-    risk, _ = grid_risk(
-        current.expected_shortfall_kwh,
-        current.expected_surplus_kwh,
+    risk, recommendation, solar_coverage_percent, fallback_percent = grid_risk(
+        current.forecasted_solar_supply_kwh,
+        current.recommended_tnb_fallback_kwh,
         current.forecasted_consumer_demand_kwh,
     )
-    recommendation = recommendation_for_hour(forecast_rows[0], current.solar_factor)
     return schemas.GridIntelligenceResponse(
         location=LOCATION,
         timezone=TIMEZONE,
@@ -281,6 +281,8 @@ def get_grid_intelligence(
             expected_shortfall_kwh=current.expected_shortfall_kwh,
             expected_surplus_kwh=current.expected_surplus_kwh,
             recommended_tnb_fallback_kwh=current.recommended_tnb_fallback_kwh,
+            solar_coverage_percent=solar_coverage_percent,
+            fallback_percent=fallback_percent,
             risk_level=risk,
             recommendation=recommendation,
         ),

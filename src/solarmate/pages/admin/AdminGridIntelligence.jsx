@@ -37,7 +37,7 @@ function hourLabel(value) {
 
 function riskChartColor(risk) {
   if (risk === 'Low') return 'green';
-  if (risk === 'Surplus Risk') return 'teal';
+  if (risk === 'Medium') return 'gold';
   return 'gold';
 }
 
@@ -50,12 +50,12 @@ function riskTheme(risk) {
       divider: 'border-emerald-300/15'
     };
   }
-  if (risk === 'Surplus Risk') {
+  if (risk === 'Medium') {
     return {
-      panel: 'from-cyan-500/18 via-slate-900/80 to-teal-950/45 border-cyan-400/25 shadow-[0_0_42px_rgba(34,211,238,0.10)]',
-      icon: 'text-cyan-300',
-      value: 'text-cyan-100',
-      divider: 'border-cyan-300/15'
+      panel: 'from-amber-400/18 via-slate-900/80 to-amber-950/35 border-amber-300/25 shadow-[0_0_42px_rgba(251,191,36,0.10)]',
+      icon: 'text-amber-300',
+      value: 'text-amber-100',
+      divider: 'border-amber-300/15'
     };
   }
   return {
@@ -100,6 +100,8 @@ export default function AdminGridIntelligence() {
       rainProbability: row.rain_probability,
       cloudCover: row.cloud_cover,
       solarFactor: row.solar_factor,
+      solarCoverage: row.solar_coverage_percent,
+      fallbackPercent: row.fallback_percent,
       riskLevel: row.risk_level
     }))
   ), [data]);
@@ -182,6 +184,23 @@ export default function AdminGridIntelligence() {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="relative overflow-hidden flex flex-col p-5 rounded-2xl bg-gradient-to-br from-emerald-400/14 via-slate-900/55 to-slate-950 border border-emerald-300/20">
+              <span className="relative text-emerald-100 text-xs font-semibold uppercase tracking-wider mb-2">
+                Solar coverage
+              </span>
+              <strong className="relative text-3xl font-bold text-white mb-1">{percent(summary.solar_coverage_percent)}</strong>
+              <small className="relative text-emerald-100/60">Forecasted solar supply / consumer demand</small>
+            </div>
+            <div className="relative overflow-hidden flex flex-col p-5 rounded-2xl bg-gradient-to-br from-amber-400/14 via-slate-900/55 to-slate-950 border border-amber-300/20">
+              <span className="relative text-amber-100 text-xs font-semibold uppercase tracking-wider mb-2">
+                TNB fallback share
+              </span>
+              <strong className="relative text-3xl font-bold text-white mb-1">{percent(summary.fallback_percent)}</strong>
+              <small className="relative text-amber-100/60">Required fallback / consumer demand</small>
+            </div>
+          </div>
+
           {/* TIER 3: ENVIRONMENTAL TELEMETRY */}
           <div className="flex flex-col p-4 rounded-2xl bg-gradient-to-r from-slate-900/50 via-cyan-950/18 to-slate-900/50 border border-white/10">
             <span className="text-xs font-semibold uppercase tracking-wider text-teal-200 mb-3 px-2">Environmental Factors</span>
@@ -237,6 +256,8 @@ export default function AdminGridIntelligence() {
             { key: 'tnbFallback', label: 'Required TNB Fallback', color: 'gold' }
           ]}
           tooltipExtra={(item) => [
+            { label: 'Solar coverage', value: percent(item.solarCoverage), color: 'green' },
+            { label: 'TNB fallback share', value: percent(item.fallbackPercent), color: 'gold' },
             { label: 'Cloud cover', value: percent(item.cloudCover), color: 'blueGrey' },
             { label: 'Rain probability', value: percent(item.rainProbability), color: 'gold' },
             { label: 'Solar potential', value: percent(item.solarFactor * 100), color: 'green' },
@@ -248,7 +269,8 @@ export default function AdminGridIntelligence() {
         />
         <p className="microcopy">
           The advisory uses Open-Meteo hourly cloud, rain, and solar radiation data to estimate prosumer solar supply
-          changes and the TNB fallback requirement.
+          changes and the TNB fallback requirement. Risk is benchmarked by green energy fulfilment: Low at 75%+
+          solar coverage, Medium at 50-74.9%, and High below 50%.
         </p>
       </DashboardCard>
     </div>
