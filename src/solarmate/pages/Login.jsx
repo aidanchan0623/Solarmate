@@ -10,8 +10,9 @@ import {
   UserPlus
 } from 'lucide-react';
 import logoUrl from '../../components/logo.svg';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { loginUser, registerUser } from '../api/client';
+import { clearModalBodyState } from '../components/Modal';
 
 const initialRegister = {
   role: 'prosumer',
@@ -42,6 +43,10 @@ export default function Login({ onLogin }) {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    clearModalBodyState({ removeBackdrops: true });
+  }, []);
 
   function updateLogin(field, value) {
     setLoginForm((current) => ({ ...current, [field]: value }));

@@ -4,11 +4,14 @@ import { X } from 'lucide-react';
 
 let activeModalCount = 0;
 
-export function clearModalBodyState() {
+export function clearModalBodyState({ removeBackdrops = false } = {}) {
   activeModalCount = 0;
   document.body.classList.remove('sm-modal-open');
   document.body.style.overflow = '';
   document.body.style.pointerEvents = '';
+  if (removeBackdrops) {
+    document.querySelectorAll('.sm-modal-backdrop').forEach((backdrop) => backdrop.remove());
+  }
 }
 
 export default function Modal({
