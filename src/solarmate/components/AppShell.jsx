@@ -17,6 +17,25 @@ const roleCopy = {
   }
 };
 
+function malaysiaTimestamp() {
+  const now = new Date();
+  const date = new Intl.DateTimeFormat('en-MY', {
+    timeZone: 'Asia/Kuala_Lumpur',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  }).format(now);
+  const time = new Intl.DateTimeFormat('en-MY', {
+    timeZone: 'Asia/Kuala_Lumpur',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZoneName: 'short'
+  }).format(now);
+
+  return { date, time };
+}
+
 export default function AppShell({
   role,
   userName,
@@ -29,6 +48,7 @@ export default function AppShell({
   subtitle
 }) {
   const copy = roleCopy[role];
+  const timestamp = malaysiaTimestamp();
   function changeTab(nextTab) {
     clearModalBodyState();
     onTabChange(nextTab);
@@ -94,7 +114,13 @@ export default function AppShell({
             <h1>{title}</h1>
             <p>{subtitle}</p>
           </div>
-          <div className="system-chip">Prototype Simulation</div>
+          <div className="portal-header-meta">
+            <div className="time-chip">
+              <span>Today: {timestamp.date}</span>
+              <strong>Last updated: {timestamp.time}</strong>
+            </div>
+            <div className="system-chip">Prototype Simulation</div>
+          </div>
         </header>
         {children}
       </main>

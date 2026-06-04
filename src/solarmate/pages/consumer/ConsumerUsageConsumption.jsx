@@ -8,6 +8,7 @@ import {
 import CompactGroupedBarChart from '../../components/CompactGroupedBarChart';
 import DashboardCard from '../../components/DashboardCard';
 import StatementModal from '../../components/StatementModal';
+import { calculateConsumerSavings } from '../../utils/calculations';
 
 function formatShortDate(value) {
   const [year, month, day] = String(value).split('-').map(Number);
@@ -225,7 +226,12 @@ export default function ConsumerUsageConsumption({ consumer }) {
                 { key: 'tnbImport', label: 'TNB import', color: 'orange' }
               ]}
               tooltipExtra={(item) => [
-                { label: 'Total usage', value: `${kwh(item.totalUsage)} kWh`, color: 'gold' }
+                { label: 'Total usage', value: `${kwh(item.totalUsage)} kWh`, color: 'gold' },
+                {
+                  label: 'Estimated saving',
+                  value: money(calculateConsumerSavings(item.totalUsage, item.greenCredit).savings),
+                  color: 'green'
+                }
               ]}
               tooltipTitle={(item) => item.fullDate}
               valueSuffix=" kWh"
