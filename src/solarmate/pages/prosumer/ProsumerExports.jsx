@@ -156,6 +156,17 @@ function ChannelSplitBar({ primaryValue, secondaryValue }) {
 }
 
 const ESP_MONTHLY_EXPORT_FACTORS = [0.92, 1.08, 0.96, 1.14];
+// Default simulated data keeps the ESP weekly chart populated before real hardware readings arrive.
+// These fallback rows are only for the initial weekly view and are excluded from monthly cumulative totals.
+const DEFAULT_ESP_WEEKLY_ROWS = [
+  { date: 'Mon', fullDate: 'Simulated Mon', generated_kwh: 22.4, local_consumption_kwh: 7.8, exported_kwh: 14.6, isSimulated: true },
+  { date: 'Tue', fullDate: 'Simulated Tue', generated_kwh: 24.1, local_consumption_kwh: 8.5, exported_kwh: 15.6, isSimulated: true },
+  { date: 'Wed', fullDate: 'Simulated Wed', generated_kwh: 21.8, local_consumption_kwh: 7.4, exported_kwh: 14.4, isSimulated: true },
+  { date: 'Thu', fullDate: 'Simulated Thu', generated_kwh: 25.3, local_consumption_kwh: 8.8, exported_kwh: 16.5, isSimulated: true },
+  { date: 'Fri', fullDate: 'Simulated Fri', generated_kwh: 23.6, local_consumption_kwh: 8.2, exported_kwh: 15.4, isSimulated: true },
+  { date: 'Sat', fullDate: 'Simulated Sat', generated_kwh: 20.9, local_consumption_kwh: 7.1, exported_kwh: 13.8, isSimulated: true },
+  { date: 'Sun', fullDate: 'Simulated Sun', generated_kwh: 26, local_consumption_kwh: 9.1, exported_kwh: 16.9, isSimulated: true }
+];
 
 function malaysiaDateParts(date = new Date()) {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -225,7 +236,8 @@ export default function ProsumerExports({ prosumer, user }) {
   const [view, setView] = useState('weekly');
   const [dailyRows, setDailyRows] = useState([]);
   const [monthlyRows, setMonthlyRows] = useState([]);
-  const [espRows, setEspRows] = useState([]);
+  const [espWeeklyRows, setEspWeeklyRows] = useState(DEFAULT_ESP_WEEKLY_ROWS);
+  const [espMonthlyCumulativeKwh, setEspMonthlyCumulativeKwh] = useState(0);
   const [statement, setStatement] = useState(null);
   const [error, setError] = useState('');
   const hasEspDevice = Boolean(prosumer.deviceId) || user?.username === 'prosumeresp';
@@ -274,18 +286,26 @@ export default function ProsumerExports({ prosumer, user }) {
         const generated = roundKwh(summary.generated_kwh);
         const localConsumption = roundKwh(summary.local_consumption_kwh);
         const exported = roundKwh(summary.daily_export_kwh);
+        const backendMonthlyExport = roundKwh(summary.monthly_export_kwh);
         if (generated <= 0 && exported <= 0) return;
 
         const date = summary.date_key || currentMalaysiaDateKey();
         const espDayRow = {
           date,
           fullDate: summary.date_label || formatDateLabel(date),
-          generated_kwh: roundKwh(localConsumption + exported),
+          generated_kwh: generated || roundKwh(localConsumption + exported),
           local_consumption_kwh: localConsumption,
-          exported_kwh: exported
+          exported_kwh: exported,
+          isSimulated: false
         };
 
-        setEspRows((current) => [...current, espDayRow]);
+        // Real ESP data update: add each real daily value to the end and drop the oldest row for a rolling 7-day chart.
+        setEspWeeklyRows((current) => [...current, espDayRow].slice(-7));
+        // Monthly cumulative update: only real ESP export values increment this total; fallback weekly rows never count.
+        setEspMonthlyCumulativeKwh((current) => {
+          const incrementedTotal = roundKwh(current + exported);
+          return backendMonthlyExport > 0 ? Math.max(incrementedTotal, backendMonthlyExport) : incrementedTotal;
+        });
         setError('');
       } catch (err) {
         if (!cancelled) setError(err.message || 'Unable to refresh ESP live reading.');
@@ -302,7 +322,7 @@ export default function ProsumerExports({ prosumer, user }) {
     };
   }, [deviceId, hasEspDevice]);
 
-  const exportRows = hasEspDevice ? espRows.slice(-7) : dailyRows;
+  const exportRows = hasEspDevice ? espWeeklyRows : dailyRows;
 
   const weeklySummary = useMemo(() => {
     const generated = exportRows.reduce((sum, row) => sum + row.generated_kwh, 0);
@@ -318,9 +338,7 @@ export default function ProsumerExports({ prosumer, user }) {
   const espCurrentMonthKey = currentMalaysiaMonthKey();
   const espHistoricalMonths = useMemo(() => buildEspHistoricalMonths(quota), [quota]);
   const espMonthlySplit = useMemo(() => {
-    const actualExported = espRows
-      .filter((row) => monthKeyFromDate(row.date) === espCurrentMonthKey)
-      .reduce((sum, row) => sum + row.exported_kwh, 0);
+    const actualExported = espMonthlyCumulativeKwh;
     const solarMateKWh = Math.min(actualExported, quota);
     const solarAtapKWh = Math.max(actualExported - quota, 0);
     return {
@@ -334,7 +352,7 @@ export default function ProsumerExports({ prosumer, user }) {
       total_earnings: roundKwh((solarMateKWh * PROSUMER_BUYBACK_RATE) + (solarAtapKWh * SOLAR_ATAP_REFERENCE_RATE)),
       status: 'Session only'
     };
-  }, [espCurrentMonthKey, espRows, quota]);
+  }, [espCurrentMonthKey, espMonthlyCumulativeKwh, quota]);
   const currentMonth = hasEspDevice ? espMonthlySplit : monthlyRows[monthlyRows.length - 1];
   const quotaUsed = currentMonth && quota
     ? Math.min((currentMonth.solar_mate_kwh / quota) * 100, 100)
