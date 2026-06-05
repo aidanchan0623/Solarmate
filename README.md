@@ -48,6 +48,21 @@ ESP32 POST endpoint:
 POST http://<laptop-ip>:8000/api/meter/reading
 ```
 
+Quick backend test command:
+
+```bash
+curl -X POST http://10.209.223.35:8000/api/meter/reading \
+  -H "Content-Type: application/json" \
+  -d "{\"device_id\":\"ESP32_SOLARMATE_001\",\"voltage_v\":4.9,\"current_a\":0.08,\"power_w\":0.39,\"energy_wh\":11.1}"
+```
+
+Browser-testable latest reading endpoints:
+
+```text
+GET http://10.209.223.35:8000/api/meter/latest
+GET http://10.209.223.35:8000/api/meter/lcd-summary/ESP32_SOLARMATE_001
+```
+
 Example body:
 
 ```json

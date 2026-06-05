@@ -169,6 +169,16 @@ class LatestMeterReadingResponse(BaseModel):
     power_w: float
     energy_wh: float
     scaled_energy_kwh: float
+    generated_kwh: float = 0
+    local_consumption_kwh: float = 0
+    daily_export_kwh: float = 0
+    monthly_export_kwh: float = 0
+    monthly_generation_kwh: float = 0
+    estimated_earnings_today: float = 0
+    date_key: str | None = None
+    date_label: str | None = None
+    created_at: str | None = None
+    last_updated: str | None = None
     last_update: str | None
     status: str
 

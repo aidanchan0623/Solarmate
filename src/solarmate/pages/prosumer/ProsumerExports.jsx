@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Award, Download, Wallet } from 'lucide-react';
 import {
-  getLatestEspData,
+  getMeterLcdSummary,
   getProsumerDailyExport,
   getProsumerMonthlyExportHistory,
   getProsumerStatement
@@ -38,6 +38,10 @@ function formatDayMonthLabel(dateString) {
 
 function kwh(value) {
   return Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+function meterValue(value) {
+  return Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 3 });
 }
 
 function roundKwh(value) {
@@ -260,6 +264,7 @@ export default function ProsumerExports({ prosumer, user }) {
   const [monthlyRows, setMonthlyRows] = useState([]);
   const [espWeeklyRows, setEspWeeklyRows] = useState(buildDefaultEspWeeklyRows);
   const [espMonthlyCumulativeKwh, setEspMonthlyCumulativeKwh] = useState(0);
+  const [espLatestReading, setEspLatestReading] = useState(null);
   const [statement, setStatement] = useState(null);
   const [error, setError] = useState('');
   const hasEspDevice = Boolean(prosumer.deviceId) || user?.username === 'prosumeresp';
@@ -295,21 +300,22 @@ export default function ProsumerExports({ prosumer, user }) {
 
     async function pollLatestEspReading() {
       try {
-        const summary = await getLatestEspData(deviceId);
-        console.log('[ESP DEBUG] fetched latest ESP data', summary);
+        const summary = await getMeterLcdSummary(deviceId);
+        console.log('[ESP DEBUG] fetched ESP meter summary', summary);
         if (cancelled) return;
+        setEspLatestReading(summary);
 
-        const readingKey = summary.last_update || summary.last_updated || '';
+        const readingKey = summary.created_at || summary.last_update || summary.last_updated || '';
         if (!espInitializedRef.current) {
           espInitializedRef.current = true;
         }
         if (!readingKey || seenReadingRef.current === readingKey) return;
         seenReadingRef.current = readingKey;
 
-        const generated = roundKwh(summary.generated_kwh);
-        const localConsumption = roundKwh(summary.local_consumption_kwh);
-        const exported = roundKwh(summary.daily_export_kwh);
-        const backendMonthlyGeneration = roundKwh(summary.monthly_generation_kwh ?? summary.monthly_export_kwh);
+        const generated = roundKwh(summary.scaled_energy_kwh ?? summary.generated_kwh);
+        const localConsumption = roundKwh(summary.local_consumption_kwh ?? generated * 0.35);
+        const exported = roundKwh(summary.daily_export_kwh ?? Math.max(generated - localConsumption, 0));
+        const backendMonthlyGeneration = roundKwh(summary.monthly_generation_kwh ?? summary.generated_kwh ?? summary.scaled_energy_kwh);
         if (generated <= 0 && exported <= 0) return;
 
         const date = currentMalaysiaDateKey();
@@ -337,7 +343,7 @@ export default function ProsumerExports({ prosumer, user }) {
         });
         setError('');
       } catch (err) {
-        console.error('[ESP DEBUG] unable to fetch latest ESP data', err);
+        console.error('[ESP DEBUG] unable to fetch ESP meter summary', err);
         if (!cancelled) setError(err.message || 'Unable to refresh ESP live reading.');
       }
     }
@@ -437,6 +443,18 @@ export default function ProsumerExports({ prosumer, user }) {
 
       {view === 'weekly' && (
         <>
+          {hasEspDevice && (
+            <DashboardCard eyebrow="ESP live meter" title="Latest ESP Reading">
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-5">
+                <ReportMetric label="Voltage" tone="sky" value={`${meterValue(espLatestReading?.voltage_v)} V`} />
+                <ReportMetric label="Current" tone="teal" value={`${meterValue(espLatestReading?.current_a)} A`} />
+                <ReportMetric label="Power" tone="amber" value={`${meterValue(espLatestReading?.power_w)} W`} />
+                <ReportMetric label="Energy" tone="teal" value={`${meterValue(espLatestReading?.energy_wh)} Wh`} />
+                <ReportMetric label="Generated" tone="amber" value={`${kwh(espLatestReading?.scaled_energy_kwh)} kWh`} />
+              </div>
+            </DashboardCard>
+          )}
+
           <DashboardCard eyebrow="Weekly export" title="This Week's Solar Export">
             <div className="overflow-hidden rounded-[2.5rem] border border-white/60 bg-white/40 shadow-sm backdrop-blur-md">
               <div className="relative overflow-hidden bg-gradient-to-br from-teal-50/90 via-emerald-50/60 to-amber-100/80 px-8 py-8">

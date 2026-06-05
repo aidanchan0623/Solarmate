@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getLatestEspData, getProsumerDailyExport, getTodayMeterReadings } from '../../api/client';
+import { getMeterLcdSummary, getProsumerDailyExport, getTodayMeterReadings } from '../../api/client';
 import DashboardCard from '../../components/DashboardCard';
 import CompactGroupedBarChart from '../../components/CompactGroupedBarChart';
 import StatusBadge from '../../components/StatusBadge';
@@ -47,18 +47,18 @@ export default function ProsumerDailyTracking({ prosumer, user }) {
 
     async function loadEspLive() {
       try {
-        const data = await getLatestEspData(deviceId);
-        console.log('[ESP DEBUG] fetched latest ESP data', data);
+        const data = await getMeterLcdSummary(deviceId);
+        console.log('[ESP DEBUG] fetched ESP meter summary', data);
         if (!cancelled) {
           setEspLive({
             ...data,
-            device_status: data.device_status,
-            last_update: data.last_update || data.last_updated
+            device_status: data.device_status || data.status,
+            last_update: data.created_at || data.last_update || data.last_updated
           });
           setEspError('');
         }
       } catch (err) {
-        console.error('[ESP DEBUG] unable to fetch latest ESP data', err);
+        console.error('[ESP DEBUG] unable to fetch ESP meter summary', err);
         if (!cancelled) setEspError(err.message);
       }
     }

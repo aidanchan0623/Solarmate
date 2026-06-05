@@ -126,7 +126,8 @@ export async function simulateMeterReading(payload = {}) {
 }
 
 export async function getLatestMeterReading(deviceId) {
-  return request(`/api/meter/latest/${encodeURIComponent(deviceId)}`);
+  const suffix = deviceId ? `/${encodeURIComponent(deviceId)}` : '';
+  return request(`/api/meter/latest${suffix}`);
 }
 
 export async function getTodayMeterReadings(deviceId) {
