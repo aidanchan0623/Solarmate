@@ -1,5 +1,7 @@
+from calendar import monthrange
+from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 import energy
@@ -10,6 +12,7 @@ import schemas
 from database import get_db
 
 router = APIRouter()
+LCD_DEMO_SESSIONS: dict[str, list[dict]] = {}
 
 
 def malaysia_time_string(value) -> str | None:
@@ -20,24 +23,49 @@ def malaysia_time_string(value) -> str | None:
     return value.astimezone(energy.MALAYSIA_TZ).strftime("%Y-%m-%d %H:%M:%S")
 
 
-def lcd_month_to_date_export(db: Session, user: models.User, daily_export_kwh: float) -> float:
-    today_key = energy.today_key()
-    current_month = energy.current_month_key()
-    previous_days_export = (
-        db.query(func.sum(models.ProsumerDailyExport.exported_kwh))
-        .filter(
-            models.ProsumerDailyExport.user_id == user.id,
-            models.ProsumerDailyExport.date.like(f"{current_month}-%"),
-            models.ProsumerDailyExport.date < today_key,
-        )
-        .scalar()
-        or 0
-    )
-    return energy.kwh(float(previous_days_export) + float(daily_export_kwh or 0))
-
-
 def short_date_label(day) -> str:
     return f"{day.strftime('%b')} {day.day}"
+
+
+def simulated_day_for_packet(packet_index: int) -> date:
+    today = energy.malaysia_today()
+    month_days = monthrange(today.year, today.month)[1]
+    zero_based = max(packet_index - 1, 0)
+    month_offset, day_offset = divmod(zero_based, month_days)
+    year, month = energy.add_months(today.year, today.month, month_offset)
+    return date(year, month, day_offset + 1)
+
+
+def record_lcd_demo_packet(device_id: str, reading: models.MeterReading) -> None:
+    if device_id != meter_utils.ESP_DEVICE_ID:
+        return
+
+    records = LCD_DEMO_SESSIONS.setdefault(device_id, [])
+    simulated_date = simulated_day_for_packet(len(records) + 1)
+    records.append(
+        {
+            "simulated_date": simulated_date,
+            "daily_export_kwh": energy.kwh(reading.scaled_energy_kwh),
+            "last_updated": reading.created_at,
+        }
+    )
+
+
+def latest_lcd_record(device_id: str) -> dict | None:
+    records = LCD_DEMO_SESSIONS.get(device_id) or []
+    return records[-1] if records else None
+
+
+def lcd_month_to_date_export(device_id: str, simulated_date: date) -> float:
+    records = LCD_DEMO_SESSIONS.get(device_id) or []
+    month_total = sum(
+        float(record["daily_export_kwh"] or 0)
+        for record in records
+        if record["simulated_date"].year == simulated_date.year
+        and record["simulated_date"].month == simulated_date.month
+        and record["simulated_date"] <= simulated_date
+    )
+    return energy.kwh(month_total)
 
 
 def reading_point(reading: models.MeterReading) -> schemas.MeterReadingPointResponse:
@@ -83,6 +111,7 @@ def save_reading(
         created_at=created_at,
     )
     db.add(reading)
+    record_lcd_demo_packet(device_id, reading)
 
     if device_id != meter_utils.ESP_DEVICE_ID:
         date_string = created_at.date().isoformat()
@@ -187,26 +216,25 @@ def get_today(device_id: str, db: Session = Depends(get_db)):
 @router.get("/lcd-summary/{device_id}")
 def get_lcd_summary(device_id: str, db: Session = Depends(get_db)):
     user = meter_utils.device_user(db, device_id)
-    today = energy.malaysia_today()
-    today_readings = meter_utils.today_readings(db, device_id)
-    latest = today_readings[-1] if today_readings else None
+    current_day = energy.malaysia_today()
+    lcd_record = latest_lcd_record(device_id)
 
-    if not user or not latest:
+    if not user or not lcd_record:
         return {
             "device_id": device_id,
-            "date_label": short_date_label(today),
+            "date_label": short_date_label(current_day),
             "daily_export_kwh": 0,
-            "month_label": today.strftime("%b %Y"),
+            "month_label": current_day.strftime("%b %Y"),
             "monthly_export_kwh": 0,
             "last_updated": None,
         }
 
-    daily_export = energy.kwh(latest.scaled_energy_kwh)
+    simulated_date = lcd_record["simulated_date"]
     return {
         "device_id": device_id,
-        "date_label": short_date_label(today),
-        "daily_export_kwh": daily_export,
-        "month_label": today.strftime("%b %Y"),
-        "monthly_export_kwh": lcd_month_to_date_export(db, user, daily_export),
-        "last_updated": malaysia_time_string(latest.created_at),
+        "date_label": short_date_label(simulated_date),
+        "daily_export_kwh": energy.kwh(lcd_record["daily_export_kwh"]),
+        "month_label": simulated_date.strftime("%b %Y"),
+        "monthly_export_kwh": lcd_month_to_date_export(device_id, simulated_date),
+        "last_updated": malaysia_time_string(lcd_record["last_updated"]),
     }
