@@ -1,4 +1,3 @@
-from calendar import monthrange
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -24,6 +23,14 @@ def malaysia_time_string(value) -> str | None:
     return value.astimezone(energy.MALAYSIA_TZ).strftime("%Y-%m-%d %H:%M:%S")
 
 
+def malaysia_time_iso(value) -> str | None:
+    if not value:
+        return None
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=energy.MALAYSIA_TZ)
+    return value.astimezone(energy.MALAYSIA_TZ).isoformat()
+
+
 def short_date_label(day) -> str:
     return f"{day.strftime('%b')} {day.day}"
 
@@ -35,13 +42,8 @@ def request_body_for_log(payload: schemas.MeterReadingRequest) -> dict:
     return data
 
 
-def simulated_day_for_packet(packet_index: int) -> date:
-    today = energy.malaysia_today()
-    month_days = monthrange(today.year, today.month)[1]
-    zero_based = max(packet_index - 1, 0)
-    month_offset, day_offset = divmod(zero_based, month_days)
-    year, month = energy.add_months(today.year, today.month, month_offset)
-    return date(year, month, day_offset + 1)
+def lcd_demo_day() -> date:
+    return energy.malaysia_today()
 
 
 def local_consumption_ratio(device_id: str, simulated_date: date) -> float:
@@ -65,17 +67,24 @@ def record_lcd_demo_packet(device_id: str, reading: models.MeterReading) -> None
         return
 
     records = LCD_DEMO_SESSIONS.setdefault(device_id, [])
-    simulated_date = simulated_day_for_packet(len(records) + 1)
+    simulated_date = lcd_demo_day()
     split = split_generated_energy(device_id, simulated_date, reading.scaled_energy_kwh)
-    records.append(
-        {
-            "simulated_date": simulated_date,
-            "generated_kwh": split["generated_kwh"],
-            "local_consumption_kwh": split["local_consumption_kwh"],
-            "daily_export_kwh": split["net_export_kwh"],
-            "last_updated": reading.created_at,
-        }
-    )
+    record = {
+        "simulated_date": simulated_date,
+        "generated_kwh": split["generated_kwh"],
+        "local_consumption_kwh": split["local_consumption_kwh"],
+        "daily_export_kwh": split["net_export_kwh"],
+        "last_updated": reading.created_at,
+    }
+
+    for index, existing_record in enumerate(records):
+        if existing_record["simulated_date"] == simulated_date:
+            records[index] = record
+            break
+    else:
+        records.append(record)
+
+    records.sort(key=lambda item: item["simulated_date"])
 
 
 def latest_lcd_record(device_id: str) -> dict | None:
@@ -409,7 +418,9 @@ def get_lcd_summary(device_id: str, db: Session = Depends(get_db)):
         response = {
             "device_id": device_id,
             "date_key": current_day.isoformat(),
+            "current_date_iso": current_day.isoformat(),
             "date_label": short_date_label(current_day),
+            "current_date_label": short_date_label(current_day),
             "generated_kwh": latest_payload.generated_kwh if latest_payload else 0,
             "local_consumption_kwh": latest_payload.local_consumption_kwh if latest_payload else 0,
             "daily_export_kwh": latest_payload.daily_export_kwh if latest_payload else 0,
@@ -417,6 +428,7 @@ def get_lcd_summary(device_id: str, db: Session = Depends(get_db)):
             "monthly_export_kwh": latest_payload.monthly_export_kwh if latest_payload else 0,
             "monthly_generation_kwh": latest_payload.monthly_generation_kwh if latest_payload else 0,
             "last_updated": latest_payload.last_updated if latest_payload else None,
+            "last_updated_iso": latest_payload.last_update if latest_payload else None,
             **latest_fields(),
         }
         print("[ESP DEBUG] returning LCD summary", response)
@@ -426,7 +438,9 @@ def get_lcd_summary(device_id: str, db: Session = Depends(get_db)):
     response = {
         "device_id": device_id,
         "date_key": simulated_date.isoformat(),
+        "current_date_iso": simulated_date.isoformat(),
         "date_label": short_date_label(simulated_date),
+        "current_date_label": short_date_label(simulated_date),
         "generated_kwh": energy.kwh(lcd_record["generated_kwh"]),
         "local_consumption_kwh": energy.kwh(lcd_record["local_consumption_kwh"]),
         "daily_export_kwh": energy.kwh(lcd_record["daily_export_kwh"]),
@@ -434,6 +448,7 @@ def get_lcd_summary(device_id: str, db: Session = Depends(get_db)):
         "monthly_export_kwh": lcd_month_to_date_export(device_id, simulated_date),
         "monthly_generation_kwh": lcd_month_to_date_generation(device_id, simulated_date),
         "last_updated": malaysia_time_string(lcd_record["last_updated"]),
+        "last_updated_iso": malaysia_time_iso(lcd_record["last_updated"]),
         **latest_fields(),
     }
     print("[ESP DEBUG] returning LCD summary", response)
