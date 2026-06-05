@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 import energy
@@ -9,6 +10,34 @@ import schemas
 from database import get_db
 
 router = APIRouter()
+
+
+def malaysia_time_string(value) -> str | None:
+    if not value:
+        return None
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=energy.MALAYSIA_TZ)
+    return value.astimezone(energy.MALAYSIA_TZ).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def lcd_month_to_date_export(db: Session, user: models.User, daily_export_kwh: float) -> float:
+    today_key = energy.today_key()
+    current_month = energy.current_month_key()
+    previous_days_export = (
+        db.query(func.sum(models.ProsumerDailyExport.exported_kwh))
+        .filter(
+            models.ProsumerDailyExport.user_id == user.id,
+            models.ProsumerDailyExport.date.like(f"{current_month}-%"),
+            models.ProsumerDailyExport.date < today_key,
+        )
+        .scalar()
+        or 0
+    )
+    return energy.kwh(float(previous_days_export) + float(daily_export_kwh or 0))
+
+
+def short_date_label(day) -> str:
+    return f"{day.strftime('%b')} {day.day}"
 
 
 def reading_point(reading: models.MeterReading) -> schemas.MeterReadingPointResponse:
@@ -153,3 +182,31 @@ def get_today(device_id: str, db: Session = Depends(get_db)):
     if not meter_utils.device_user(db, device_id):
         raise HTTPException(status_code=404, detail="Unknown SolarMate device_id")
     return [reading_point(reading) for reading in meter_utils.today_readings(db, device_id)]
+
+
+@router.get("/lcd-summary/{device_id}")
+def get_lcd_summary(device_id: str, db: Session = Depends(get_db)):
+    user = meter_utils.device_user(db, device_id)
+    today = energy.malaysia_today()
+    today_readings = meter_utils.today_readings(db, device_id)
+    latest = today_readings[-1] if today_readings else None
+
+    if not user or not latest:
+        return {
+            "device_id": device_id,
+            "date_label": short_date_label(today),
+            "daily_export_kwh": 0,
+            "month_label": today.strftime("%b %Y"),
+            "monthly_export_kwh": 0,
+            "last_updated": None,
+        }
+
+    daily_export = energy.kwh(latest.scaled_energy_kwh)
+    return {
+        "device_id": device_id,
+        "date_label": short_date_label(today),
+        "daily_export_kwh": daily_export,
+        "month_label": today.strftime("%b %Y"),
+        "monthly_export_kwh": lcd_month_to_date_export(db, user, daily_export),
+        "last_updated": malaysia_time_string(latest.created_at),
+    }
