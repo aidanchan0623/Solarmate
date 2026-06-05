@@ -36,16 +36,35 @@ def simulated_day_for_packet(packet_index: int) -> date:
     return date(year, month, day_offset + 1)
 
 
+def local_consumption_ratio(device_id: str, simulated_date: date) -> float:
+    ratio_seed = sum(ord(char) for char in f"{device_id}-{simulated_date.isoformat()}")
+    return 0.35 + (ratio_seed % 21) / 100
+
+
+def split_generated_energy(device_id: str, simulated_date: date, generated_kwh: float) -> dict:
+    generated = energy.kwh(generated_kwh)
+    local_consumption = energy.kwh(generated * local_consumption_ratio(device_id, simulated_date))
+    net_export = energy.kwh(max(generated - local_consumption, 0))
+    return {
+        "generated_kwh": energy.kwh(local_consumption + net_export),
+        "local_consumption_kwh": local_consumption,
+        "net_export_kwh": net_export,
+    }
+
+
 def record_lcd_demo_packet(device_id: str, reading: models.MeterReading) -> None:
     if device_id != meter_utils.ESP_DEVICE_ID:
         return
 
     records = LCD_DEMO_SESSIONS.setdefault(device_id, [])
     simulated_date = simulated_day_for_packet(len(records) + 1)
+    split = split_generated_energy(device_id, simulated_date, reading.scaled_energy_kwh)
     records.append(
         {
             "simulated_date": simulated_date,
-            "daily_export_kwh": energy.kwh(reading.scaled_energy_kwh),
+            "generated_kwh": split["generated_kwh"],
+            "local_consumption_kwh": split["local_consumption_kwh"],
+            "daily_export_kwh": split["net_export_kwh"],
             "last_updated": reading.created_at,
         }
     )
