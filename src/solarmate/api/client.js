@@ -1,4 +1,7 @@
-export const API_BASE_URL = import.meta.env.VITE_SOLARMATE_API_URL || 'http://127.0.0.1:8000';
+export const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_SOLARMATE_API_URL ||
+  'http://127.0.0.1:8000';
 
 const TOKEN_KEY = 'solarmate_access_token';
 
@@ -101,6 +104,11 @@ export async function getProsumerStatement(month) {
 
 export async function getProsumerEspLive() {
   return request('/api/prosumer/esp-live');
+}
+
+export async function getLatestEspData(deviceId) {
+  const query = deviceId ? `?${new URLSearchParams({ device_id: deviceId }).toString()}` : '';
+  return request(`/api/esp/latest${query}`);
 }
 
 export async function postMeterReading(payload) {

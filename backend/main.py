@@ -25,6 +25,7 @@ app.include_router(consumer.router, prefix="/api/consumer", tags=["consumer"])
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 app.include_router(grid_intelligence.router, prefix="/api/admin", tags=["admin"])
 app.include_router(meter.router, prefix="/api/meter", tags=["meter"])
+app.include_router(meter.esp_router, prefix="/api/esp", tags=["esp"])
 app.include_router(wallet.router, prefix="/api/wallet", tags=["wallet"])
 
 

@@ -173,6 +173,26 @@ class LatestMeterReadingResponse(BaseModel):
     status: str
 
 
+class EspLatestResponse(BaseModel):
+    device_id: str
+    voltage_v: float
+    current_a: float
+    power_w: float
+    energy_wh: float
+    scaled_energy_kwh: float
+    generated_kwh: float
+    local_consumption_kwh: float
+    daily_export_kwh: float
+    monthly_export_kwh: float
+    monthly_generation_kwh: float
+    estimated_earnings_today: float
+    device_status: str
+    date_key: str
+    date_label: str
+    last_updated: str | None
+    last_update: str | None
+
+
 class MeterReadingPointResponse(BaseModel):
     time: str
     voltage_v: float

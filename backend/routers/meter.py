@@ -12,6 +12,7 @@ import schemas
 from database import get_db
 
 router = APIRouter()
+esp_router = APIRouter()
 LCD_DEMO_SESSIONS: dict[str, list[dict]] = {}
 
 
@@ -85,6 +86,81 @@ def lcd_month_to_date_export(device_id: str, simulated_date: date) -> float:
         and record["simulated_date"] <= simulated_date
     )
     return energy.kwh(month_total)
+
+
+def lcd_month_to_date_generation(device_id: str, simulated_date: date) -> float:
+    records = LCD_DEMO_SESSIONS.get(device_id) or []
+    month_total = sum(
+        float(record["generated_kwh"] or 0)
+        for record in records
+        if record["simulated_date"].year == simulated_date.year
+        and record["simulated_date"].month == simulated_date.month
+        and record["simulated_date"] <= simulated_date
+    )
+    return energy.kwh(month_total)
+
+
+def latest_esp_payload(db: Session, device_id: str = meter_utils.ESP_DEVICE_ID) -> schemas.EspLatestResponse:
+    user = meter_utils.device_user(db, device_id)
+    latest = meter_utils.latest_reading(db, device_id)
+    current_day = energy.malaysia_today()
+
+    if not user or not latest:
+        return schemas.EspLatestResponse(
+            device_id=device_id,
+            voltage_v=0,
+            current_a=0,
+            power_w=0,
+            energy_wh=0,
+            scaled_energy_kwh=0,
+            generated_kwh=0,
+            local_consumption_kwh=0,
+            daily_export_kwh=0,
+            monthly_export_kwh=0,
+            monthly_generation_kwh=0,
+            estimated_earnings_today=0,
+            device_status="No Data",
+            date_key=current_day.isoformat(),
+            date_label=short_date_label(current_day),
+            last_updated=None,
+            last_update=None,
+        )
+
+    lcd_record = latest_lcd_record(device_id)
+    if lcd_record:
+        generated = energy.kwh(lcd_record["generated_kwh"])
+        local_consumption = energy.kwh(lcd_record["local_consumption_kwh"])
+        daily_export = energy.kwh(lcd_record["daily_export_kwh"])
+        simulated_date = lcd_record["simulated_date"]
+        monthly_export = lcd_month_to_date_export(device_id, simulated_date)
+        monthly_generation = lcd_month_to_date_generation(device_id, simulated_date)
+    else:
+        generated = energy.kwh(latest.scaled_energy_kwh)
+        split = split_generated_energy(device_id, current_day, generated)
+        local_consumption = split["local_consumption_kwh"]
+        daily_export = split["net_export_kwh"]
+        monthly_export = daily_export
+        monthly_generation = generated
+
+    return schemas.EspLatestResponse(
+        device_id=device_id,
+        voltage_v=round(latest.voltage_v, 3),
+        current_a=round(latest.current_a, 3),
+        power_w=round(latest.power_w, 3),
+        energy_wh=round(latest.energy_wh, 3),
+        scaled_energy_kwh=energy.kwh(latest.scaled_energy_kwh),
+        generated_kwh=generated,
+        local_consumption_kwh=local_consumption,
+        daily_export_kwh=daily_export,
+        monthly_export_kwh=monthly_export,
+        monthly_generation_kwh=monthly_generation,
+        estimated_earnings_today=energy.money(daily_export * energy.PROSUMER_BUYBACK_RATE),
+        device_status=meter_utils.reading_status(latest),
+        date_key=current_day.isoformat(),
+        date_label=short_date_label(current_day),
+        last_updated=malaysia_time_string(latest.created_at),
+        last_update=latest.created_at.isoformat(),
+    )
 
 
 def reading_point(reading: models.MeterReading) -> schemas.MeterReadingPointResponse:
@@ -170,7 +246,7 @@ def post_reading(payload: schemas.MeterReadingRequest, db: Session = Depends(get
     if power_w is None:
         power_w = payload.voltage_v * payload.current_a
 
-    save_reading(
+    reading = save_reading(
         db=db,
         device_id=payload.device_id,
         voltage_v=payload.voltage_v,
@@ -178,6 +254,19 @@ def post_reading(payload: schemas.MeterReadingRequest, db: Session = Depends(get
         power_w=power_w,
         energy_wh=payload.energy_wh,
     )
+    if payload.device_id == meter_utils.ESP_DEVICE_ID:
+        print(
+            "[ESP DEBUG] received ESP data",
+            {
+                "device_id": payload.device_id,
+                "voltage_v": round(payload.voltage_v, 3),
+                "current_a": round(payload.current_a, 3),
+                "power_w": round(power_w, 3),
+                "energy_wh": round(payload.energy_wh, 3),
+                "scaled_energy_kwh": energy.kwh(reading.scaled_energy_kwh),
+                "created_at": malaysia_time_string(reading.created_at),
+            },
+        )
     return {
         "status": "ok",
         "message": "Reading saved",
@@ -263,3 +352,21 @@ def get_lcd_summary(device_id: str, db: Session = Depends(get_db)):
         "monthly_export_kwh": lcd_month_to_date_export(device_id, simulated_date),
         "last_updated": malaysia_time_string(lcd_record["last_updated"]),
     }
+
+
+@esp_router.get("/latest", response_model=schemas.EspLatestResponse)
+def get_latest_esp_data(
+    device_id: str = meter_utils.ESP_DEVICE_ID,
+    db: Session = Depends(get_db),
+):
+    payload = latest_esp_payload(db, device_id)
+    print(
+        "[ESP DEBUG] exposing latest ESP data",
+        {
+            "device_id": payload.device_id,
+            "generated_kwh": payload.generated_kwh,
+            "daily_export_kwh": payload.daily_export_kwh,
+            "last_updated": payload.last_updated,
+        },
+    )
+    return payload

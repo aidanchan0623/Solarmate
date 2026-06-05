@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Award, Download, Wallet } from 'lucide-react';
 import {
-  getMeterLcdSummary,
+  getLatestEspData,
   getProsumerDailyExport,
   getProsumerMonthlyExportHistory,
   getProsumerStatement
@@ -295,10 +295,11 @@ export default function ProsumerExports({ prosumer, user }) {
 
     async function pollLatestEspReading() {
       try {
-        const summary = await getMeterLcdSummary(deviceId);
+        const summary = await getLatestEspData(deviceId);
+        console.log('[ESP DEBUG] fetched latest ESP data', summary);
         if (cancelled) return;
 
-        const readingKey = summary.last_updated ? `${summary.date_key || ''}-${summary.last_updated}` : '';
+        const readingKey = summary.last_update || summary.last_updated || '';
         if (!espInitializedRef.current) {
           espInitializedRef.current = true;
         }
@@ -308,7 +309,7 @@ export default function ProsumerExports({ prosumer, user }) {
         const generated = roundKwh(summary.generated_kwh);
         const localConsumption = roundKwh(summary.local_consumption_kwh);
         const exported = roundKwh(summary.daily_export_kwh);
-        const backendMonthlyExport = roundKwh(summary.monthly_export_kwh);
+        const backendMonthlyGeneration = roundKwh(summary.monthly_generation_kwh ?? summary.monthly_export_kwh);
         if (generated <= 0 && exported <= 0) return;
 
         const date = currentMalaysiaDateKey();
@@ -329,13 +330,14 @@ export default function ProsumerExports({ prosumer, user }) {
           const withoutToday = current.filter((row) => row.date !== date);
           return [...withoutToday, espDayRow].slice(-7);
         });
-        // Monthly cumulative update: only real ESP export values increment this total; fallback weekly rows never count.
+        // Monthly cumulative update: only real ESP generated kWh increments this total; fallback rows never count.
         setEspMonthlyCumulativeKwh((current) => {
-          const incrementedTotal = roundKwh(current + exported);
-          return backendMonthlyExport > 0 ? Math.max(incrementedTotal, backendMonthlyExport) : incrementedTotal;
+          const incrementedTotal = roundKwh(current + generated);
+          return backendMonthlyGeneration > 0 ? Math.max(incrementedTotal, backendMonthlyGeneration) : incrementedTotal;
         });
         setError('');
       } catch (err) {
+        console.error('[ESP DEBUG] unable to fetch latest ESP data', err);
         if (!cancelled) setError(err.message || 'Unable to refresh ESP live reading.');
       }
     }
@@ -343,7 +345,7 @@ export default function ProsumerExports({ prosumer, user }) {
     pollLatestEspReading();
     const interval = window.setInterval(() => {
       pollLatestEspReading();
-    }, 2000);
+    }, 3000);
     return () => {
       cancelled = true;
       window.clearInterval(interval);
