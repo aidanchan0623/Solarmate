@@ -125,6 +125,10 @@ export async function getTodayMeterReadings(deviceId) {
   return request(`/api/meter/today/${encodeURIComponent(deviceId)}`);
 }
 
+export async function getMeterLcdSummary(deviceId) {
+  return request(`/api/meter/lcd-summary/${encodeURIComponent(deviceId)}`);
+}
+
 export async function getConsumerProfile() {
   return request('/api/consumer/profile');
 }

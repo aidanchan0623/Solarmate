@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Award, Download, Wallet } from 'lucide-react';
 import {
-  getLatestMeterReading,
+  getMeterLcdSummary,
   getProsumerDailyExport,
   getProsumerMonthlyExportHistory,
   getProsumerStatement
@@ -155,12 +155,6 @@ function ChannelSplitBar({ primaryValue, secondaryValue }) {
   );
 }
 
-function stableRatio(seedText) {
-  const seed = Array.from(seedText || '').reduce((sum, char) => sum + char.charCodeAt(0), 0);
-  return 0.35 + (seed % 21) / 100;
-}
-
-const ESP_BASE_GENERATED_KWH = [24.4, 23.8, 25.1, 24.7, 26.2, 23.9, 25.5];
 const ESP_MONTHLY_EXPORT_FACTORS = [0.92, 1.08, 0.96, 1.14];
 
 function malaysiaDateParts(date = new Date()) {
@@ -206,36 +200,6 @@ function addMonths(monthKey, offset) {
   return dateKey(date.getFullYear(), date.getMonth() + 1, 1).slice(0, 7);
 }
 
-function addDays(dateString, offset) {
-  const [year, month, day] = String(dateString).split('-').map(Number);
-  const date = new Date(year, month - 1, day + offset);
-  const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const dd = String(date.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-}
-
-function makeEspEnergyRow(date, generatedKwh, seedText) {
-  const generated = roundKwh(generatedKwh);
-  const localConsumption = roundKwh(generated * stableRatio(seedText));
-  const exported = roundKwh(Math.max(generated - localConsumption, 0));
-  return {
-    date,
-    fullDate: formatDateLabel(date),
-    generated_kwh: roundKwh(localConsumption + exported),
-    local_consumption_kwh: localConsumption,
-    exported_kwh: exported
-  };
-}
-
-function buildEspBaseRows() {
-  const todayKey = currentMalaysiaDateKey();
-  const baseStartDate = addDays(todayKey, -(ESP_BASE_GENERATED_KWH.length - 1));
-  return ESP_BASE_GENERATED_KWH.map((generatedKwh, index) => (
-    makeEspEnergyRow(addDays(baseStartDate, index), generatedKwh, `esp-base-${baseStartDate}-${index}`)
-  ));
-}
-
 function buildEspHistoricalMonths(quota) {
   const currentMonth = currentMalaysiaMonthKey();
   return ESP_MONTHLY_EXPORT_FACTORS.map((factor, index) => {
@@ -261,14 +225,13 @@ export default function ProsumerExports({ prosumer, user }) {
   const [view, setView] = useState('weekly');
   const [dailyRows, setDailyRows] = useState([]);
   const [monthlyRows, setMonthlyRows] = useState([]);
-  const [espRows, setEspRows] = useState(() => (Boolean(prosumer.deviceId) || user?.username === 'prosumeresp' ? buildEspBaseRows() : []));
+  const [espRows, setEspRows] = useState([]);
   const [statement, setStatement] = useState(null);
   const [error, setError] = useState('');
   const hasEspDevice = Boolean(prosumer.deviceId) || user?.username === 'prosumeresp';
   const deviceId = prosumer.deviceId || 'ESP32_SOLARMATE_001';
   const seenReadingRef = useRef(null);
   const espInitializedRef = useRef(false);
-  const espNextDayOffsetRef = useRef(1);
 
   async function loadExportData() {
     if (hasEspDevice) return;
@@ -298,24 +261,29 @@ export default function ProsumerExports({ prosumer, user }) {
 
     async function pollLatestEspReading() {
       try {
-        const reading = await getLatestMeterReading(deviceId);
+        const summary = await getMeterLcdSummary(deviceId);
         if (cancelled) return;
 
-        const readingKey = reading.last_update || '';
+        const readingKey = summary.last_updated ? `${summary.date_key || ''}-${summary.last_updated}` : '';
         if (!espInitializedRef.current) {
           espInitializedRef.current = true;
-          seenReadingRef.current = readingKey || null;
-          return;
         }
         if (!readingKey || seenReadingRef.current === readingKey) return;
         seenReadingRef.current = readingKey;
 
-        const generated = roundKwh(reading.scaled_energy_kwh);
-        if (generated <= 0) return;
+        const generated = roundKwh(summary.generated_kwh);
+        const localConsumption = roundKwh(summary.local_consumption_kwh);
+        const exported = roundKwh(summary.daily_export_kwh);
+        if (generated <= 0 && exported <= 0) return;
 
-        const date = addDays(currentMalaysiaDateKey(), espNextDayOffsetRef.current);
-        espNextDayOffsetRef.current += 1;
-        const espDayRow = makeEspEnergyRow(date, generated, `esp-${readingKey}-${generated}`);
+        const date = summary.date_key || currentMalaysiaDateKey();
+        const espDayRow = {
+          date,
+          fullDate: summary.date_label || formatDateLabel(date),
+          generated_kwh: roundKwh(localConsumption + exported),
+          local_consumption_kwh: localConsumption,
+          exported_kwh: exported
+        };
 
         setEspRows((current) => [...current, espDayRow]);
         setError('');

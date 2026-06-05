@@ -241,7 +241,10 @@ def get_lcd_summary(device_id: str, db: Session = Depends(get_db)):
     if not user or not lcd_record:
         return {
             "device_id": device_id,
+            "date_key": current_day.isoformat(),
             "date_label": short_date_label(current_day),
+            "generated_kwh": 0,
+            "local_consumption_kwh": 0,
             "daily_export_kwh": 0,
             "month_label": current_day.strftime("%b %Y"),
             "monthly_export_kwh": 0,
@@ -251,7 +254,10 @@ def get_lcd_summary(device_id: str, db: Session = Depends(get_db)):
     simulated_date = lcd_record["simulated_date"]
     return {
         "device_id": device_id,
+        "date_key": simulated_date.isoformat(),
         "date_label": short_date_label(simulated_date),
+        "generated_kwh": energy.kwh(lcd_record["generated_kwh"]),
+        "local_consumption_kwh": energy.kwh(lcd_record["local_consumption_kwh"]),
         "daily_export_kwh": energy.kwh(lcd_record["daily_export_kwh"]),
         "month_label": simulated_date.strftime("%b %Y"),
         "monthly_export_kwh": lcd_month_to_date_export(device_id, simulated_date),
