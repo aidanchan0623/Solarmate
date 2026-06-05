@@ -30,6 +30,12 @@ function formatDateLabel(dateString) {
   return `${MONTH_LABELS[month - 1] || ''} ${day}`.trim();
 }
 
+function formatDayMonthLabel(dateString) {
+  const [year, month, day] = String(dateString).split('-').map(Number);
+  if (!year || !month || !day) return dateString;
+  return `${day} ${MONTH_LABELS[month - 1] || ''}`.trim();
+}
+
 function kwh(value) {
   return Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
@@ -156,17 +162,7 @@ function ChannelSplitBar({ primaryValue, secondaryValue }) {
 }
 
 const ESP_MONTHLY_EXPORT_FACTORS = [0.92, 1.08, 0.96, 1.14];
-// Default simulated data keeps the ESP weekly chart populated before real hardware readings arrive.
-// These fallback rows are only for the initial weekly view and are excluded from monthly cumulative totals.
-const DEFAULT_ESP_WEEKLY_ROWS = [
-  { date: 'Mon', fullDate: 'Simulated Mon', generated_kwh: 22.4, local_consumption_kwh: 7.8, exported_kwh: 14.6, isSimulated: true },
-  { date: 'Tue', fullDate: 'Simulated Tue', generated_kwh: 24.1, local_consumption_kwh: 8.5, exported_kwh: 15.6, isSimulated: true },
-  { date: 'Wed', fullDate: 'Simulated Wed', generated_kwh: 21.8, local_consumption_kwh: 7.4, exported_kwh: 14.4, isSimulated: true },
-  { date: 'Thu', fullDate: 'Simulated Thu', generated_kwh: 25.3, local_consumption_kwh: 8.8, exported_kwh: 16.5, isSimulated: true },
-  { date: 'Fri', fullDate: 'Simulated Fri', generated_kwh: 23.6, local_consumption_kwh: 8.2, exported_kwh: 15.4, isSimulated: true },
-  { date: 'Sat', fullDate: 'Simulated Sat', generated_kwh: 20.9, local_consumption_kwh: 7.1, exported_kwh: 13.8, isSimulated: true },
-  { date: 'Sun', fullDate: 'Simulated Sun', generated_kwh: 26, local_consumption_kwh: 9.1, exported_kwh: 16.9, isSimulated: true }
-];
+const DEFAULT_ESP_GENERATION_KWH = [22.4, 24.1, 21.8, 25.3, 23.6, 20.9, 26];
 
 function malaysiaDateParts(date = new Date()) {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -185,6 +181,12 @@ function malaysiaDateParts(date = new Date()) {
 
 function dateKey(year, month, day) {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+function addDaysToDateKey(dateString, offset) {
+  const [year, month, day] = String(dateString).split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day + offset));
+  return dateKey(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate());
 }
 
 function currentMalaysiaDateKey() {
@@ -209,6 +211,26 @@ function addMonths(monthKey, offset) {
   const [year, month] = monthKey.split('-').map(Number);
   const date = new Date(year, month - 1 + offset, 1);
   return dateKey(date.getFullYear(), date.getMonth() + 1, 1).slice(0, 7);
+}
+
+function buildDefaultEspWeeklyRows() {
+  const today = currentMalaysiaDateKey();
+  // Default simulated data keeps the ESP weekly chart populated with the latest 7 calendar days
+  // before real hardware readings arrive. These fallback rows never count toward monthly totals.
+  return DEFAULT_ESP_GENERATION_KWH.map((generatedKwh, index) => {
+    const date = addDaysToDateKey(today, index - (DEFAULT_ESP_GENERATION_KWH.length - 1));
+    const localConsumption = roundKwh(generatedKwh * 0.35);
+    const label = formatDayMonthLabel(date);
+    return {
+      date,
+      label,
+      fullDate: label,
+      generated_kwh: generatedKwh,
+      local_consumption_kwh: localConsumption,
+      exported_kwh: roundKwh(generatedKwh - localConsumption),
+      isSimulated: true
+    };
+  });
 }
 
 function buildEspHistoricalMonths(quota) {
@@ -236,7 +258,7 @@ export default function ProsumerExports({ prosumer, user }) {
   const [view, setView] = useState('weekly');
   const [dailyRows, setDailyRows] = useState([]);
   const [monthlyRows, setMonthlyRows] = useState([]);
-  const [espWeeklyRows, setEspWeeklyRows] = useState(DEFAULT_ESP_WEEKLY_ROWS);
+  const [espWeeklyRows, setEspWeeklyRows] = useState(buildDefaultEspWeeklyRows);
   const [espMonthlyCumulativeKwh, setEspMonthlyCumulativeKwh] = useState(0);
   const [statement, setStatement] = useState(null);
   const [error, setError] = useState('');
@@ -289,18 +311,24 @@ export default function ProsumerExports({ prosumer, user }) {
         const backendMonthlyExport = roundKwh(summary.monthly_export_kwh);
         if (generated <= 0 && exported <= 0) return;
 
-        const date = summary.date_key || currentMalaysiaDateKey();
+        const date = currentMalaysiaDateKey();
+        const label = formatDayMonthLabel(date);
         const espDayRow = {
           date,
-          fullDate: summary.date_label || formatDateLabel(date),
+          label,
+          fullDate: label,
           generated_kwh: generated || roundKwh(localConsumption + exported),
           local_consumption_kwh: localConsumption,
           exported_kwh: exported,
           isSimulated: false
         };
 
-        // Real ESP data update: add each real daily value to the end and drop the oldest row for a rolling 7-day chart.
-        setEspWeeklyRows((current) => [...current, espDayRow].slice(-7));
+        // Real ESP data update: update today's row if it already exists; otherwise append today and
+        // drop the oldest entry so the ESP weekly chart never exceeds 7 days.
+        setEspWeeklyRows((current) => {
+          const withoutToday = current.filter((row) => row.date !== date);
+          return [...withoutToday, espDayRow].slice(-7);
+        });
         // Monthly cumulative update: only real ESP export values increment this total; fallback weekly rows never count.
         setEspMonthlyCumulativeKwh((current) => {
           const incrementedTotal = roundKwh(current + exported);
@@ -357,10 +385,15 @@ export default function ProsumerExports({ prosumer, user }) {
   const quotaUsed = currentMonth && quota
     ? Math.min((currentMonth.solar_mate_kwh / quota) * 100, 100)
     : 0;
+  const bestDayLabel = weeklySummary.best
+    ? hasEspDevice
+      ? weeklySummary.best.label || formatDayMonthLabel(weeklySummary.best.date)
+      : formatDateLabel(weeklySummary.best.date)
+    : '-';
 
   const weeklyChartData = exportRows.map((row) => ({
-    date: formatDateLabel(row.date),
-    fullDate: hasEspDevice ? row.fullDate || formatDateLabel(row.date) : row.date,
+    date: hasEspDevice ? row.label || formatDayMonthLabel(row.date) : formatDateLabel(row.date),
+    fullDate: hasEspDevice ? row.fullDate || row.label || formatDayMonthLabel(row.date) : row.date,
     generatedKwh: row.generated_kwh,
     localConsumptionKwh: row.local_consumption_kwh,
     exportedKwh: row.exported_kwh
@@ -417,7 +450,7 @@ export default function ProsumerExports({ prosumer, user }) {
                   </div>
                   <div className="flex flex-wrap gap-3">
                     <InsightChip icon={Wallet} label="Earnings" tone="emerald" value={`RM${weeklySummary.earnings.toFixed(2)}`} variant="light" />
-                    <InsightChip icon={Award} label="Best day" tone="amber" value={weeklySummary.best ? formatDateLabel(weeklySummary.best.date) : '-'} variant="light" />
+                    <InsightChip icon={Award} label="Best day" tone="amber" value={bestDayLabel} variant="light" />
                   </div>
                 </div>
               </div>
